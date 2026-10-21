@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local environment overrides (commit .env.example instead)
+.env
