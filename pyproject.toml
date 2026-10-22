@@ -1,16 +1,32 @@
 [project]
 name = "mlops-final-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "Arabic legal document Q&A: retrieval-augmented answers over the Egyptian Civil Code, with article citations."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.157.0",
     "uvicorn[standard]>=0.54.0",
+    "pydantic-settings>=2.6",
+    "numpy>=1.26",
+    # The serving backend. ONNX was dropped from this project, so there is no
+    # quantized-graph path and the runtime image is torch-sized.
+    # transformers + torch rather than sentence-transformers on purpose: the
+    # mean-pooling and L2-normalization steps stay in our own tested code
+    # (prodllm.pooling) instead of being hidden inside a library's module config.
+    "torch>=2.5,<3",
+    "transformers>=4.44,<5",
+    "safetensors>=0.4",
+    # Vector search. A flat FAISS index over ~1100 article chunks is a few MB,
+    # needs no server, and loads in milliseconds -- so it ships inside the
+    # image instead of requiring a database container.
+    "faiss-cpu>=1.8",
+    # The LLM adapter talks plain HTTP, so no vendor SDK is required.
+    "httpx>=0.28",
 ]
 
-[project.scripts]
-mlops-final-project = "prodllm:main"
+# NOTE: [project.scripts] deliberately removed. It pointed at a prodllm:main stub
+# whose only body was a print() call -- the one thing the module forbids in src/.
 
 [build-system]
 requires = ["uv_build>=0.12.8,<0.13.0"]
@@ -20,3 +36,74 @@ build-backend = "uv_build"
 # The distribution is still named "mlops-final-project", so the backend would
 # otherwise look for a src/mlops_final_project/ module.
 module-name = "prodllm"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=6",
+    "httpx>=0.28",
+    "ruff>=0.14",
+    "pre-commit>=4",
+]
+# Only needed to regenerate the report's serialization and latency tables.
+bench = [
+    "psutil>=6",
+    "joblib>=1.4",
+]
+# Only needed to rebuild the corpus from the source PDF (Step 0). pdfplumber
+# gives word-level bounding boxes, which is what makes column-aware extraction
+# possible -- a naive text dump interleaves the Arabic and English columns.
+corpus = [
+    "pdfplumber>=0.11",
+    "dvc>=3.55",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "T20", "ANN", "RUF", "PTH", "C4", "ARG"]
+ignore = [
+    "ANN401",
+    # RUF001/2/3 flag "ambiguous" Unicode -- characters that resemble Latin
+    # ones. This corpus is Arabic legal text, so Arabic letters appear in
+    # strings, docstrings and comments throughout and every hit is a false
+    # positive. Suppressed project-wide rather than littered with noqa.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+# T20 (flake8-print) is what mechanically enforces "zero print() statements in src/".
+# PTH flags os.path usage, pushing toward pathlib and away from hardcoded paths.
+# ANN requires type hints, which is one of Step 2's deliverables.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN", "ARG", "S101"]
+"scripts/*" = ["T20"]  # these are command-line tools; printing tables is their job
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# No --cov-report=xml: that output exists for CI consumers and there is no CI here.
+addopts = "-q --strict-markers --strict-config --cov=prodllm --cov-report=term-missing"
+# No custom markers: the suite needs no model weights and no index on disk, so
+# there is nothing to conditionally skip. --strict-markers keeps it that way --
+# a typo'd or unregistered mark is an error, not a silently skipped test.
+
+[tool.coverage.run]
+source = ["prodllm"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+]
