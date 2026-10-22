@@ -1,0 +1,41 @@
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
+    hooks:
+      # The hook id is `ruff-check` on ruff-pre-commit >= 0.12; the old `ruff`
+      # name fails with a confusing "hook not found".
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # The mechanical guarantee that a model artifact can never be committed:
+      # model.int8.onnx is 113 MB and model.onnx is 448 MB. It also correctly
+      # blocks tokenizer.json (16.3 MB), which ships in the image, not in git.
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: local
+    hooks:
+      # The coverage gate runs at pre-push, not pre-commit. Running the whole
+      # suite on every commit is how hooks end up being bypassed with --no-verify.
+      - id: pytest-cov
+        name: pytest with coverage gate (>=70%)
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

@@ -34,9 +34,7 @@ class CorrelationIdMiddleware:
             if message["type"] == "http.response.start":
                 status_code = message["status"]
                 headers = list(message.get("headers", []))
-                headers.append(
-                    (b"x-request-id", request_id.encode("ascii"))
-                )
+                headers.append((b"x-request-id", request_id.encode("ascii")))
                 message = {**message, "headers": headers}
 
             await send(message)
@@ -47,9 +45,7 @@ class CorrelationIdMiddleware:
             logger.exception("Request failed")
             raise
         finally:
-            latency_ms = round(
-                (time.perf_counter() - start_time) * 1000, 2
-            )
+            latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
             logger.info(
                 "Request completed",
                 extra={
