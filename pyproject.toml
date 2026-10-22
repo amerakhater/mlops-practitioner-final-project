@@ -32,6 +32,22 @@ dependencies = [
 requires = ["uv_build>=0.12.8,<0.13.0"]
 build-backend = "uv_build"
 
+# On Linux, `torch` from PyPI is the CUDA build: it drags in 15 nvidia-* wheels
+# and triton, roughly 5 GB installed, for a model that runs on CPU. That never
+# shows up on Windows, where the PyPI wheel is already CPU-only -- so the
+# problem is invisible locally and only lands in the image.
+#
+# Pinning Linux to PyTorch's CPU index takes the container from ~6 GB to
+# ~1 GB. The marker keeps Windows resolving from PyPI exactly as before, so
+# `uv sync` here is unaffected.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
 [tool.uv.build-backend]
 # The distribution is still named "mlops-final-project", so the backend would
 # otherwise look for a src/mlops_final_project/ module.

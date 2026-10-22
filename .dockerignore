@@ -1,4 +1,5 @@
 .git/
+.gitignore
 .venv/
 __pycache__/
 *.py[oc]
@@ -6,8 +7,39 @@ __pycache__/
 build/
 dist/
 wheels/
+
+# Secrets are injected at run time, never baked into a layer.
 .env
+
+# Caches and local tooling output.
+.caches/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
+# Not needed to run the service. tests/ and reports/ are deliverables, but
+# they are repository deliverables, not image contents.
+tests/
+reports/
 docker/
+docker-compose.yml
+.pre-commit-config.yaml
+
+# The corpus source and intermediate JSON. The image carries the built FAISS
+# index instead, which is what the service actually loads -- so this is ~5 MB
+# of build context that nothing reads.
+data/
+
+# Model weights are fetched in the `weights` build stage, pinned to a revision.
+# A locally fetched copy would add ~470 MB to the build context and let the
+# image's contents depend on whatever happens to be on the build machine.
+artifacts/model/
+artifacts/metadata.json
+
+# Everything except the README, which pyproject.toml references as readme.
+*.md
+!README.md

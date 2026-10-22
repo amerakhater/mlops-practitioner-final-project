@@ -1,0 +1,71 @@
+# docker compose up --build
+#
+# Brings the service up on http://localhost:8000. Compose is not ceremony
+# here: the next module adds a vector database and a tracing backend as
+# sibling services, and this file is where they attach, so `docker compose up`
+# stays the one command that brings the whole stack up.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime
+    image: amerakhater/mlops-final-project:0.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      # DEBUG additionally emits one per-call latency line per embed and per
+      # retrieval, from the @log_latency decorator.
+      PRODLLM_LOG_LEVEL: INFO
+      # One thread per worker: scale with replicas, not in-process threads, so
+      # per-container memory and latency stay predictable.
+      PRODLLM_TORCH_NUM_THREADS: "1"
+      PRODLLM_TOP_K: "5"
+    # Mirrors the image's own HEALTHCHECK so `docker compose ps` reports
+    # readiness rather than mere liveness: /health answers 200 while degraded
+    # on purpose, so a 200 does not mean the service can answer questions.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,sys,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); sys.exit(0 if d['model_loaded'] and d['documents_indexed'] > 0 else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  # The weightless variant, for the report's image-size comparison:
+  #   docker compose --profile thin up --build api-thin
+  # It downloads ~470 MB on first start, so the cache is a named volume --
+  # without one, every restart downloads the model again.
+  api-thin:
+    profiles: ["thin"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime-thin
+    image: amerakhater/mlops-final-project:0.1.0-thin
+    ports:
+      - "8001:8000"
+    environment:
+      PRODLLM_LOG_LEVEL: INFO
+      PRODLLM_TORCH_NUM_THREADS: "1"
+    volumes:
+      - hf-cache:/app/.cache/huggingface
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,sys,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); sys.exit(0 if d['model_loaded'] and d['documents_indexed'] > 0 else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 600s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  hf-cache:

@@ -1,145 +1,327 @@
-# mlops-final-project
+# Arabic legal document Q&A — Egyptian Civil Code
 
-A FastAPI service skeleton with structured JSON logging and per-request
-correlation IDs. This document covers how to run it locally and how to deploy
-it as a container.
+Ask a question in Arabic or English about the Egyptian Civil Code and get an
+answer **with the article citations it was drawn from**. Retrieval-augmented:
+the Code is parsed into one record per article, every article is embedded, and
+the answer quotes only what was retrieved.
 
-> **Current state:** the application exposes no business routes yet. Only
-> FastAPI's built-in endpoints (`/docs`, `/redoc`, `/openapi.json`) respond;
-> every other path returns `404`. The request logging and correlation-ID
-> middleware are fully wired and work on every request, including the 404s.
+Citations are the point. An answer a lawyer cannot check against an article
+number is worthless, so every response carries the article number, the printed
+citation, the source page and the retrieval score.
 
-## Requirements
-
-- [uv](https://docs.astral.sh/uv/) 0.12 or newer — manages Python and dependencies
-- Python 3.12 (uv installs it automatically from `.python-version`)
-- Docker, only for the container deployment
-
-You do not need a pre-existing Python installation or a manually created
-virtualenv; `uv` handles both.
-
-## Install
+## Quickstart — three commands
 
 ```bash
-cd mlops-final-project
-uv sync
+docker pull amerakhater/mlops-final-project:0.1.0
+docker run --rm -p 8000:8000 amerakhater/mlops-final-project:0.1.0
+curl -s localhost:8000/ask -H 'content-type: application/json' \
+  -d '{"question":"ما هي مدة التقادم في القانون المدني؟"}'
 ```
 
-`uv sync` creates `.venv/` and installs the exact versions pinned in
-`uv.lock`. Re-run it after pulling changes that touch `pyproject.toml` or
-`uv.lock`.
+The second command stays in the foreground, so run the third in a second
+terminal. Nothing else is needed: the model weights and the vector index are
+both inside the image, so there is no download, no API key and no database.
+Startup is about 20 seconds, almost all of it loading the encoder.
 
-## Run locally
+On Windows, `curl` in PowerShell is an alias for `Invoke-WebRequest` and takes
+different flags. Use `curl.exe` explicitly, or:
 
-```bash
-uv run uvicorn prodllm.api.main:app --reload --port 8000
+```powershell
+Invoke-RestMethod -Uri http://localhost:8000/ask -Method Post `
+  -ContentType 'application/json' `
+  -Body ([Text.Encoding]::UTF8.GetBytes('{"question":"ما هي مدة التقادم في القانون المدني؟"}'))
 ```
 
-- `--reload` restarts the server on source changes. Use it for development only.
-- The ASGI application object is `app` in
-  [src/prodllm/api/main.py](src/prodllm/api/main.py).
+## What it answers over
 
-The service is then on <http://127.0.0.1:8000>, with interactive API docs at
-<http://127.0.0.1:8000/docs>.
+| | |
+|---|---|
+| Source | Egyptian Civil Code (القانون المدني المصري), Law 131 of 1948, bilingual Arabic/English PDF |
+| Articles | 1149, of which 56 are flagged repealed and 1091 are bilingual |
+| Indexed chunks | 1092, one per article (long articles split on sub-clauses) |
+| Vectors | 2183 — one per language per chunk, so Arabic and English questions both hit |
+| Index | FAISS `IndexFlatIP` over unit-norm vectors, ~6 MB, no server |
+| Encoder | `intfloat/multilingual-e5-small`, 384 dims, mean pooling + L2 norm |
 
-### Verify it is working
+Repealed articles are **flagged, not deleted**: a question about a repealed
+provision should be answerable with the fact that it was repealed, which is
+impossible if the record is gone.
 
-```bash
-curl -i http://127.0.0.1:8000/openapi.json
-```
+## API
 
-Two things confirm the middleware is active:
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/ask` | A question in, an answer plus article citations out |
+| `GET` | `/health` | Liveness and readiness (`documents_indexed`) |
+| `GET` | `/metadata` | What is actually loaded: model id, dim, format, SHA-256 |
+| `POST` | `/predict` | Embed one text — the retrieval primitive |
+| `POST` | `/predict/batch` | Embed up to 64 texts in one forward pass |
 
-1. The response carries an `x-request-id` header with a fresh UUID per request.
-2. The server prints one JSON log line per request, for example:
+Interactive docs at <http://localhost:8000/docs>.
+
+### `POST /ask`
 
 ```json
-{"timestamp": "2026-10-21T14:09:07.605150+00:00", "level": "INFO", "logger": "prodllm.api", "message": "Request completed", "correlation_id": "c187015d-27dd-4b12-96cb-623ace68cbe3", "method": "GET", "path": "/openapi.json", "status_code": 200, "latency_ms": 1.16}
+{"question": "ما هي مدة التقادم في القانون المدني؟"}
 ```
 
-The `correlation_id` in the log matches the `x-request-id` header, so a client
-can quote the header value and you can find the exact request in the logs.
+Real response, abridged — article text truncated, two of five sources dropped:
 
-## Run as a container
+```json
+{
+  "answer": "Egyptian Civil Code, Article 388: A debtor cannot renounce the benefits of prescription before he has acquired the right to invoke it ...\n\nEgyptian Civil Code, Article 386: Prescription extinguishes the obligation, but leaves a natural obligation upon the debtor ...",
+  "sources": [
+    {
+      "article_number": 388,
+      "citation": "Egyptian Civil Code, Article 388",
+      "source_page": 53,
+      "score": 0.8476,
+      "text_ar": "لا يجوز الترول عن التقادم قبل ثبوت الحق فيه ...",
+      "text_en": "A debtor cannot renounce the benefits of prescription ..."
+    },
+    {
+      "article_number": 974,
+      "citation": "Egyptian Civil Code, Article 974",
+      "source_page": 140,
+      "score": 0.8311,
+      "text_ar": "أيا كانت مدة التقادم المكسب فإنه يقف متى وجد سبب الوقف.",
+      "text_en": "Acquisitive prescription, whatever its period, is suspended if any cause exists for such suspension."
+    }
+  ],
+  "grounded": true,
+  "latency_ms": 45.3
+}
+```
 
-The image is built from [docker/Dockerfile](docker/Dockerfile). **Build from
-the repository root**, not from inside `docker/` — the build context must
-contain `src/`, `pyproject.toml`, `uv.lock` and `README.md`:
+`grounded` is false when nothing was retrieved; the answer then says so and
+`sources` is empty, rather than answering from the least-irrelevant article
+available.
+
+An empty or whitespace-only question is a `422`, not an empty answer.
+
+**Answers are extractive by default.** With no LLM configured the service
+quotes the retrieved articles verbatim, which cannot hallucinate. Set
+`PRODLLM_LLM_BASE_URL` and `PRODLLM_LLM_MODEL` to route through an
+OpenAI-compatible chat endpoint instead; the prompt instructs the model to
+answer only from the supplied articles.
+
+### `GET /health`
+
+```json
+{"status": "healthy", "documents_indexed": 1092, "version": "0.1.0",
+ "model_loaded": true, "uptime_seconds": 19.45}
+```
+
+It answers `200` **even when degraded**, with `status: "degraded"` and
+`documents_indexed: 0`. That is deliberate: a container that reports why it
+cannot serve is far easier to diagnose than one that crash-loops before it can
+log anything. Readiness is therefore `documents_indexed > 0`, which is what the
+image's `HEALTHCHECK` asserts — not a bare `200`.
+
+### `GET /metadata`
+
+```json
+{"service_version": "0.1.0", "source_model_id": "intfloat/multilingual-e5-small",
+ "embedding_dim": 384, "max_seq_length": 512, "serialization_format": "safetensors",
+ "artifact_sha256": "a1b2c3...", "pooling": "mean", "normalized": true,
+ "supported_prefixes": ["query: ", "passage: "],
+ "max_batch_size": 64, "max_text_chars": 8000}
+```
+
+It reports the artifact **actually loaded**, not what the config asked for.
+`artifact_sha256` is empty when the weights came from the Hugging Face cache
+rather than from a build that wrote `artifacts/metadata.json`.
+
+### `POST /predict`
+
+```json
+{"text": "ما هي مدة التقادم في القانون المدني؟", "prefix": "query: "}
+```
+
+`prefix` is `"query: "` or `"passage: "` and nothing else — e5 is trained with
+instruction prefixes, and omitting them degrades retrieval with no error. An
+unsupported prefix is a `422` at the edge rather than a quietly worse vector.
+Use `"passage: "` only when embedding documents to index.
+
+## Run from source
 
 ```bash
-docker build -f docker/Dockerfile -t mlops-final-project:latest .
-docker run --rm -p 8000:8000 mlops-final-project:latest
+uv sync
+uv run uvicorn prodllm.api.main:app --port 8000
 ```
 
-The image installs dependencies from `uv.lock` with `uv sync --locked --no-dev`,
-so a build fails loudly if the lock file is out of date rather than silently
-resolving different versions. It runs as the non-root user `appuser` (UID
-10001) and listens on port 8000.
+Requires [uv](https://docs.astral.sh/uv/) 0.12+; it installs Python 3.12 and
+every pinned dependency itself. The service needs two artifacts, neither of
+which is in git:
 
-To pass configuration in, use `--env-file`:
+**1. The FAISS index** (`artifacts/index/`) — required, or `/ask` returns 503:
 
 ```bash
-docker run --rm -p 8000:8000 --env-file .env mlops-final-project:latest
+uv run --group corpus python scripts/build_corpus.py   # PDF  -> data/processed/
+uv run python scripts/build_index.py                   # JSON -> artifacts/index/
 ```
 
-`.env` is excluded from the image by `.dockerignore`, so secrets are injected
-at run time and never baked into a layer.
+`build_corpus.py` needs the source PDF at `data/raw/`. If you already have
+`data/processed/chunks.json`, skip straight to `build_index.py`.
 
-## Deploy
+**2. The weights** — optional locally. With `artifacts/model/` absent and
+`PRODLLM_ALLOW_DOWNLOAD=true` (the default), they are fetched from Hugging Face
+on first start and cached. To pin the revision and record a SHA-256:
 
-The container is a standard stateless HTTP service: it listens on `$PORT`-style
-port 8000, holds no local state, and logs JSON to stdout. That makes it
-deployable as-is to any container host (Cloud Run, ECS, Azure Container Apps,
-Kubernetes, a plain Docker host).
+```bash
+uv run python scripts/fetch_weights.py
+```
 
-Points that matter when promoting it beyond a laptop:
+## Container
 
-- **Drop `--reload`.** The image's default command already omits it.
-- **Workers.** The default command runs a single uvicorn worker. Scale by
-  running more container replicas rather than more in-process workers — that
-  keeps per-instance memory predictable and lets the orchestrator handle
-  restarts.
-- **Logs.** JSON goes to stdout, which is what container log collectors expect.
-  Do not add file logging; let the platform capture the stream.
-- **Health checks.** There is no health endpoint yet. Until one exists, point
-  liveness/readiness probes at `/openapi.json`, which returns `200`. Replacing
-  that with a real `/health` route is the first thing worth adding.
-- **Port.** Override with `--port` in the command if your platform requires a
-  specific one.
-
-Example, pinning a version tag and overriding the port:
+Built from [docker/Dockerfile](docker/Dockerfile). **Build from the repository
+root** — the context must contain `src/`, `pyproject.toml`, `uv.lock` and
+`artifacts/index/`:
 
 ```bash
 docker build -f docker/Dockerfile -t mlops-final-project:0.1.0 .
-docker run --rm -p 8080:8080 mlops-final-project:0.1.0 \
-  uvicorn prodllm.api.main:app --host 0.0.0.0 --port 8080
 ```
+
+Two targets come out of the one file:
+
+| Target | Weights | First start | Use |
+|---|---|---|---|
+| `runtime` (default) | baked in, pinned revision | ~20 s, offline | the published image |
+| `runtime-thin` | downloaded on start | several minutes, needs network | the size comparison in the report |
+
+```bash
+docker build -f docker/Dockerfile --target runtime-thin -t mlops-final-project:0.1.0-thin .
+```
+
+The thin image writes its download to `/app/.cache/huggingface`; mount a volume
+there or every restart fetches the model again.
+
+### Compose
+
+```bash
+docker compose up --build
+```
+
+Serves on <http://localhost:8000>. `docker compose ps` reports `healthy` only
+once the model and index are both loaded, because the compose healthcheck
+mirrors the image's rather than probing for a `200`. The thin variant sits
+behind a profile so it does not start by default:
+
+```bash
+docker compose --profile thin up --build api-thin     # on port 8001
+```
+
+Compose is not ceremony here: the next module adds a tracing backend and
+possibly a vector database as sibling services, and this file is where they
+attach.
+
+### What the image does and does not contain
+
+- Runs as **non-root** `appuser`, UID 10001. Verify with
+  `docker run --rm mlops-final-project:0.1.0 id -u`.
+- On Linux, torch comes from PyTorch's **CPU index**, not PyPI. The PyPI wheel
+  pulls 15 `nvidia-*` packages plus triton — about 5 GB of CUDA runtime for a
+  model that runs on CPU. This is invisible on Windows, where the PyPI wheel is
+  already CPU-only, so it only ever lands in the image.
+- `libgomp1` is installed explicitly. `faiss-cpu`'s wheel links
+  `libgomp.so.1`, which `python:3.12-slim` does not ship; without it the
+  container starts, serves 503 forever, and buries the real `ImportError` in
+  the startup log.
+- No `src/` and no dev dependencies: `uv sync --no-editable
+  --no-default-groups` installs `prodllm` as a real package.
+- Secrets are never baked in. `.env` is in `.dockerignore`; pass configuration
+  with `--env-file .env` or `-e`.
 
 ## Configuration
 
-`.env` and `.env.example` exist but are currently empty, as is
-[src/prodllm/config.py](src/prodllm/config.py). The
-application reads no environment variables yet — the only runtime knobs today
-are the uvicorn flags above. As settings are added, document them in
-`.env.example` and keep real values out of `.env` in version control.
+Every setting is read from the environment with a `PRODLLM_` prefix and has a
+working default. [.env.example](.env.example) is the annotated template; the
+values that matter most:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `PRODLLM_ARTIFACTS_DIR` | `artifacts` | **Relative** by default. An absolute default is the "works on my laptop, fails in the container" trap; the image sets `/app/artifacts`. |
+| `PRODLLM_ALLOW_DOWNLOAD` | `true` | The default image sets `false`, so a bad artifacts path fails loudly instead of silently downloading. |
+| `PRODLLM_SOURCE_MODEL_ID` | `intfloat/multilingual-e5-small` | Changing it invalidates the index — rebuild, or retrieval compares vectors from two different embedding spaces. |
+| `PRODLLM_TOP_K` | `5` | Articles cited per answer. |
+| `PRODLLM_MIN_SCORE` | `0.0` | Cosine floor, disabled. See the limitation below — this default is a measured result. |
+| `PRODLLM_LOG_LEVEL` | `INFO` | `DEBUG` adds a per-call latency line from the `@log_latency` decorator. |
+| `PRODLLM_TORCH_NUM_THREADS` | `1` | Scale with replicas, not in-process threads. |
+| `PRODLLM_LLM_BASE_URL`, `PRODLLM_LLM_MODEL` | empty | Both empty = extractive answers. |
+| `PRODLLM_LLM_API_KEY` | empty | A secret. Pass at run time; never commit a value. |
+
+Logs are JSON on stdout, one line per request, with a correlation ID that also
+comes back as the `x-request-id` header — so a client can quote the header and
+you can find the exact request:
+
+```json
+{"timestamp": "2026-10-22T15:50:38.185912+00:00", "level": "INFO", "logger": "prodllm.api",
+ "message": "Request completed", "correlation_id": "10dbe781-9011-4685-bc33-35230106dcc0",
+ "method": "POST", "path": "/ask", "status_code": 200, "latency_ms": 47.52}
+```
+
+## Tests and quality gates
+
+```bash
+uv run pytest                  # 198 tests, coverage gate at 70% (currently ~97%)
+uv run ruff check . && uv run ruff format --check .
+uv run pre-commit install && uv run pre-commit install --hook-type pre-push
+```
+
+The suite runs in a fresh clone with **no model weights and no index on disk**:
+all file and session loading is confined to `from_*` classmethods, so the
+tokenize → forward → pool → normalize path is covered with mocks and a
+`FakeEmbedder`. Without that seam the most failure-prone module in the
+repository would be the least tested.
+
+Gates are local by design — there is no CI pipeline. `pre-commit` runs ruff,
+formatting and a large-file guard on every commit, and the full suite with the
+coverage gate on every push.
 
 ## Project layout
 
 ```
-mlops-final-project/
-├── docker/Dockerfile                        container image definition
-├── src/prodllm/
-│   ├── api/main.py                          FastAPI app object and startup wiring
-│   ├── api/middleware.py                    correlation ID + request logging
-│   ├── logging_conf.py                      JSON log formatter and filter
-│   └── config.py                            settings (empty placeholder)
-├── tests/                                   empty placeholder
-├── pyproject.toml                           project metadata and dependencies
-└── uv.lock                                  pinned dependency versions
+src/prodllm/
+├── rag.py                  corpus -> chunks -> FAISS index; question -> answer + citations
+├── corpus/                 PDF extraction: column-aware parse, bidi repair, normalize, validate
+├── embedding/              Embedder ABC, FakeEmbedder, TorchEmbedder (transformers)
+├── pooling.py              mean pooling + L2 normalization, pure numpy, unit-tested
+├── api/                    routes, schemas, DI seams, lifespan, correlation-ID middleware
+├── instrumentation.py      the @log_latency decorator
+├── logging_conf.py         JSON formatter
+└── config.py               pydantic-settings, PRODLLM_ prefix
+scripts/
+├── build_corpus.py         the source PDF   -> data/processed/articles.json + chunks.json
+├── build_index.py          chunks.json      -> artifacts/index/
+└── fetch_weights.py        Hugging Face     -> artifacts/model/ + metadata.json
+docker/Dockerfile           multi-stage; targets runtime and runtime-thin
+docker-compose.yml          the service on port 8000
+reports/module-1.md         measurements and the maturity self-assessment
 ```
 
-## Tests
+## Known limitations
 
-`tests/` is an empty placeholder — there is no test suite and no test runner
-configured in `pyproject.toml` yet. Once tests are added, run them with
-`uv run pytest`.
+These are stated rather than hidden, because each one is a real constraint a
+reviewer would otherwise find.
+
+- **No similarity threshold separates relevant from irrelevant.** Measured on
+  this corpus over 10 on-topic and 5 off-topic questions, top-1 cosine spans
+  0.838–0.899 on-topic and 0.789–0.859 off-topic. The ranges overlap: "Explain
+  quantum entanglement" scores 0.859, above several genuine legal questions.
+  e5-family models compress similarities into a narrow high band, so
+  `min_score` defaults to disabled rather than to a value tuned to look good on
+  a handful of examples. The real fix is a cross-encoder reranker, which scores
+  query/passage pairs jointly and does separate.
+- **Some English article bodies absorb the heading that follows them.**
+  Article 388's English text runs on into "Chapter VI Proof of Obligations …".
+  Arabic text and all article numbering are unaffected, and no citation points
+  at the wrong article, but a few English quotes carry trailing heading text.
+- **Lam-alef ligature artifact in the source PDF.** A handful of Arabic words
+  extract with `لا` as `ال` (`فلا` → `فال`). This is not repaired, because `ال`
+  is also the definite article, so a blanket substitution would corrupt
+  thousands of correct words. It is a property of the source PDF's glyph
+  encoding.
+- **The `topic` field is unpopulated.** Book, chapter and section are captured
+  from running headers; the finest hierarchy level is not.
+- **No ONNX, no CI pipeline, no DVC.** All three were deferred by decision, not
+  oversight; see [reports/module-1.md](reports/module-1.md).

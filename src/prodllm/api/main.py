@@ -5,8 +5,8 @@ request handler -- that is the single most expensive mistake available in this
 module, worth a ~100x latency penalty per request.
 
 A missing artifact is logged and the service continues in a degraded state
-rather than raising. Raising would make the app unimportable without the 448 MB
-model, which would make the test suite unrunnable in a fresh clone; and in
+rather than raising. Raising would make the app unimportable without the model
+weights, which would make the test suite unrunnable in a fresh clone; and in
 production a container that answers ``/health`` with ``model_loaded: false`` is
 far more diagnosable than one that crash-loops before it can log why.
 """
@@ -76,7 +76,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 logger.info(
                     "Corpus index loaded",
                     extra={
-                        "documents_indexed": len(index),
+                        # document_count, not len(index): there is one vector
+                        # per language per chunk, so len() is twice the number
+                        # of documents and would disagree with /health.
+                        "documents_indexed": index.document_count,
+                        "vectors": len(index),
                         "index_dir": str(settings.index_dir),
                     },
                 )
@@ -93,10 +97,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="prodllm embedding service",
+    title="Arabic legal document Q&A",
     description=(
-        "Arabic sentence embeddings from a quantized ONNX graph. "
-        "The retrieval component of an Arabic legal document Q&A system."
+        "Retrieval-augmented question answering over the Egyptian Civil Code. "
+        "Every answer carries the article citations it was drawn from."
     ),
     version=prodllm.__version__,
     lifespan=lifespan,
