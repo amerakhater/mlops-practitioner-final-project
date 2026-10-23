@@ -21,9 +21,10 @@ coverage.xml
 htmlcov/
 *.log
 
-# Not needed to run the service. tests/ and reports/ are deliverables, but
-# they are repository deliverables, not image contents.
-tests/
+# Not needed to run the service. reports/ is a repository deliverable, not an
+# image content. tests/ is NOT excluded: the development target copies it so
+# `docker run --target development ... pytest` works without a bind mount. The
+# runtime stages never copy it, so this costs context, not image size.
 reports/
 docker/
 docker-compose.yml

@@ -1,5 +1,6 @@
 """Settings, including the guard against the handbook's hardcoded-paths failure mode."""
 
+import os
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,26 @@ import pytest
 from prodllm.config import MAX_BATCH_SIZE, MAX_TEXT_CHARS, Settings, get_settings
 
 
+@pytest.fixture
+def pristine_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """``Settings()`` with no ambient ``PRODLLM_*`` and no ``.env`` in scope.
+
+    The two tests below assert the *shipped defaults*, but pydantic-settings
+    reads the environment and ``./.env`` -- so without this they fail for
+    anyone who has exported ``PRODLLM_LOG_LEVEL``, and inside any container
+    that sets one (the dev service in docker-compose.yml does). That is a test
+    that reports on the machine it runs on rather than on the code.
+    """
+    # list(), not the live mapping: delenv mutates os.environ as we iterate.
+    for name in list(os.environ):
+        if name.startswith("PRODLLM_"):
+            monkeypatch.delenv(name, raising=False)
+    # env_file is the relative path ".env", so moving off the repo root is what
+    # takes it out of scope.
+    monkeypatch.chdir(tmp_path)
+
+
+@pytest.mark.usefixtures("pristine_env")
 def test_defaults_are_sane():
     settings = Settings()
 
@@ -18,6 +39,7 @@ def test_defaults_are_sane():
     assert settings.log_level == "INFO"
 
 
+@pytest.mark.usefixtures("pristine_env")
 def test_artifacts_dir_default_is_relative():
     """Works on your laptop, fails in the container -- every time.
 

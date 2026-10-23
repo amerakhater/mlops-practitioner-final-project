@@ -37,6 +37,48 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # The development container, behind a profile so `docker compose up` still
+  # means "run the service as it ships":
+  #   docker compose --profile dev up dev                   # reload on edit
+  #   docker compose --profile dev run --rm dev pytest      # the suite
+  #   docker compose --profile dev run --rm dev ruff check .
+  #
+  # Port 8001 belongs to api-thin, so this takes 8002 and all three can run at
+  # once -- comparing dev behaviour against the shipped image is the reason to
+  # have both.
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    image: mlops-final-project:0.1.0-dev
+    ports:
+      - "8002:8000"
+    # The dev image bakes no PRODLLM_* values -- tests/test_config.py asserts
+    # the shipped defaults, so they are set here instead, where a run can
+    # override them. DEBUG adds the per-call @log_latency lines.
+    environment:
+      PRODLLM_ARTIFACTS_DIR: /app/artifacts
+      PRODLLM_LOG_LEVEL: DEBUG
+      PRODLLM_TORCH_NUM_THREADS: "1"
+      PRODLLM_TOP_K: "5"
+    volumes:
+      # Source, tests and scripts are mounted rather than baked, so an edit on
+      # the host is what runs -- `uvicorn --reload` restarts, and pytest sees
+      # the current tree with no rebuild.
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./scripts:/app/scripts
+      - ./openapi.json:/app/openapi.json:ro
+      # Read-only: the dev container reuses the index and weights already built
+      # on the host, and cannot corrupt them. If artifacts/ is empty the model
+      # is downloaded instead, into the cache volume below.
+      - ./artifacts:/app/artifacts:ro
+      - hf-cache-dev:/app/.cache/huggingface
+    # The dev image does not have the runtime's HEALTHCHECK, on purpose: a dev
+    # container is routinely started with no index on purpose.
+
   # The weightless variant, for the report's image-size comparison:
   #   docker compose --profile thin up --build api-thin
   # It downloads ~470 MB on first start, so the cache is a named volume --
@@ -69,3 +111,4 @@ services:
 
 volumes:
   hf-cache:
+  hf-cache-dev:

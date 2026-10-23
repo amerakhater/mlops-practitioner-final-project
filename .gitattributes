@@ -1,0 +1,25 @@
+# Line endings are LF in the repository *and* in the working tree, on every
+# platform.
+#
+# Without this, core.autocrlf=true checks every text file out as CRLF on
+# Windows; the mixed-line-ending pre-commit hook rewrites it back to LF and
+# fails the commit over a change git itself considers empty. Retrying loops,
+# because pre-commit restores the staged files with `git checkout`, which
+# re-applies the CRLF. An eol attribute takes precedence over core.autocrlf,
+# which is what ends it.
+#
+# All 56 tracked blobs were already LF in the index when this was added, so it
+# changes what lands in the working tree, never what is committed.
+* text=auto eol=lf
+
+# Binaries stay byte-for-byte. The weights, the index and the source PDF are
+# gitignored, so these rules are a guard against a stray copy being committed
+# and silently corrupted by line-ending translation, not a description of the
+# current tree.
+*.pdf binary
+*.safetensors binary
+*.bin binary
+*.pt binary
+*.pth binary
+*.faiss binary
+*.onnx binary

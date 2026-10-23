@@ -57,7 +57,20 @@ impossible if the record is gone.
 | `POST` | `/predict` | Embed one text — the retrieval primitive |
 | `POST` | `/predict/batch` | Embed up to 64 texts in one forward pass |
 
-Interactive docs at <http://localhost:8000/docs>.
+Interactive docs at <http://localhost:8000/docs>. The same contract is
+committed as [openapi.json](openapi.json) — 3.1.0, generated from the
+application, not written by hand:
+
+```bash
+uv run python scripts/export_openapi.py            # write / refresh it
+uv run python scripts/export_openapi.py --check    # fail if it is stale
+```
+
+A committed spec is what makes a contract change visible in a diff, and lets a
+client be generated or the API imported into a collection without a running
+container. The export also runs as a pre-commit hook whenever something under
+`src/prodllm/api/` changes — it rewrites the file and the hook fails, the same
+way `ruff --fix` does — so the spec cannot drift from the routes it describes.
 
 ### `POST /ask`
 
@@ -182,19 +195,46 @@ root** — the context must contain `src/`, `pyproject.toml`, `uv.lock` and
 docker build -f docker/Dockerfile -t mlops-final-project:0.1.0 .
 ```
 
-Two targets come out of the one file:
+Three targets come out of the one file — one for development, two for
+production:
 
-| Target | Weights | First start | Use |
+| Target | Weights | Dev tooling | Use |
 |---|---|---|---|
-| `runtime` (default) | baked in, pinned revision | ~20 s, offline | the published image |
-| `runtime-thin` | downloaded on start | several minutes, needs network | the size comparison in the report |
+| `runtime` (default) | baked in, pinned revision | none | the published image; starts in ~20 s, offline |
+| `runtime-thin` | downloaded on start | none | the size comparison in the report; needs network |
+| `development` | neither (mount or download) | pytest, ruff, pre-commit, uv | the local edit–test loop |
 
 ```bash
 docker build -f docker/Dockerfile --target runtime-thin -t mlops-final-project:0.1.0-thin .
+docker build -f docker/Dockerfile --target development  -t mlops-final-project:0.1.0-dev .
 ```
 
 The thin image writes its download to `/app/.cache/huggingface`; mount a volume
 there or every restart fetches the model again.
+
+### Development vs runtime
+
+The split is not only about size. A runtime image carrying pytest, ruff and a
+writable source tree ships a toolchain and test fixtures into production as
+attack surface, and `uv sync --no-editable --no-default-groups` is what keeps
+them out. What the `development` target adds:
+
+- the **dev dependency group** (pytest, pytest-cov, ruff, pre-commit) and
+  `uv` itself, so `pytest` and `ruff` run inside the container; the runtime
+  stages copy a finished `/app/.venv` out of the builder and ship no package
+  manager at all,
+- an **editable install**, so a bind-mounted `src/` is what runs and
+  `uvicorn --reload` restarts on an edit instead of requiring a rebuild,
+- `PRODLLM_LOG_LEVEL=DEBUG` and no `HEALTHCHECK` — a dev container is
+  routinely started with no index on purpose, and `unhealthy` on a container
+  behaving as intended trains you to ignore the column.
+
+Both halves share this one file, and therefore the same Python version, the
+same locked resolution and the same `libgomp1` fix — so the separation buys
+isolation without letting the dev and production environments drift apart.
+**Both run as the same unprivileged user:** a dev container running as root
+writes root-owned files into your working tree, and a loop that only works as
+root breaks the moment it is promoted to runtime.
 
 ### Compose
 
@@ -211,14 +251,32 @@ behind a profile so it does not start by default:
 docker compose --profile thin up --build api-thin     # on port 8001
 ```
 
+The development container sits behind its own profile, with `src/`, `tests/`
+and `scripts/` bind-mounted and `artifacts/` mounted read-only so it reuses
+the index already built on the host:
+
+```bash
+docker compose --profile dev up dev                   # port 8002, reload on edit
+docker compose --profile dev run --rm dev pytest
+docker compose --profile dev run --rm dev ruff check .
+```
+
+All three can run at once — `api` on 8000, `api-thin` on 8001, `dev` on 8002 —
+which is what makes "it works in dev" checkable against the image that ships.
+
 Compose is not ceremony here: the next module adds a tracing backend and
 possibly a vector database as sibling services, and this file is where they
 attach.
 
 ### What the image does and does not contain
 
-- Runs as **non-root** `appuser`, UID 10001. Verify with
-  `docker run --rm mlops-final-project:0.1.0 id -u`.
+- Runs as **non-root** `appuser`, UID 10001 — in every target, development
+  included. Verify with
+  `docker run --rm mlops-final-project:0.1.0 id -u` (and the same against
+  `:0.1.0-dev`). In the runtime images the virtualenv is root-owned and
+  `artifacts/` is the only path the service can write; the development image
+  gives `appuser` its venv and caches, because `uv sync` has to be able to
+  write them.
 - On Linux, torch comes from PyTorch's **CPU index**, not PyPI. The PyPI wheel
   pulls 15 `nvidia-*` packages plus triton — about 5 GB of CUDA runtime for a
   model that runs on CPU. This is invisible on Windows, where the PyPI wheel is
@@ -275,8 +333,8 @@ tokenize → forward → pool → normalize path is covered with mocks and a
 repository would be the least tested.
 
 Gates are local by design — there is no CI pipeline. `pre-commit` runs ruff,
-formatting and a large-file guard on every commit, and the full suite with the
-coverage gate on every push.
+formatting, a large-file guard and the `openapi.json` export on every commit,
+and the full suite with the coverage gate on every push.
 
 ## Project layout
 
@@ -293,9 +351,11 @@ src/prodllm/
 scripts/
 ├── build_corpus.py         the source PDF   -> data/processed/articles.json + chunks.json
 ├── build_index.py          chunks.json      -> artifacts/index/
-└── fetch_weights.py        Hugging Face     -> artifacts/model/ + metadata.json
-docker/Dockerfile           multi-stage; targets runtime and runtime-thin
-docker-compose.yml          the service on port 8000
+├── fetch_weights.py        Hugging Face     -> artifacts/model/ + metadata.json
+└── export_openapi.py       the app          -> openapi.json
+openapi.json                the committed contract, generated, --check in a hook
+docker/Dockerfile           multi-stage; development, runtime, runtime-thin
+docker-compose.yml          api :8000, api-thin :8001 (thin), dev :8002 (dev)
 reports/module-1.md         measurements and the maturity self-assessment
 ```
 
