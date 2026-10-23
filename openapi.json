@@ -1,0 +1,607 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Arabic legal document Q&A",
+    "description": "Retrieval-augmented question answering over the Egyptian Civil Code. Every answer carries the article citations it was drawn from.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Health",
+        "description": "Liveness.\n\nDeliberately 200 even when degraded: a container that crash-loops before\nit can log why is far harder to diagnose than one that reports its state.\nReadiness is ``documents_indexed``, which the image's HEALTHCHECK asserts.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ask": {
+      "post": {
+        "tags": [
+          "qa"
+        ],
+        "summary": "Ask",
+        "description": "Answer a question about the Egyptian Civil Code, with citations.\n\nWhen nothing clears the relevance threshold the service says so and\nreturns no sources, rather than answering from the least-irrelevant\narticle it could find. For a legal assistant, declining is correct.",
+        "operationId": "ask_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metadata": {
+      "get": {
+        "tags": [
+          "model"
+        ],
+        "summary": "Metadata",
+        "description": "Describe the artifact actually loaded, not what the config asked for.",
+        "operationId": "metadata_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict": {
+      "post": {
+        "tags": [
+          "embeddings"
+        ],
+        "summary": "Predict",
+        "description": "Embed a single text. The generic rubric endpoint, kept alongside /ask.",
+        "operationId": "predict_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict/batch": {
+      "post": {
+        "tags": [
+          "embeddings"
+        ],
+        "summary": "Predict Batch",
+        "operationId": "predict_batch_predict_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchPredictRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchPredictResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "examples": [
+              "ما هي مدة التقادم في القانون المدني؟"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest"
+      },
+      "AskResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceArticle"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "grounded": {
+            "type": "boolean",
+            "title": "Grounded",
+            "description": "False when no article passed the relevance threshold."
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "sources",
+          "grounded",
+          "latency_ms"
+        ],
+        "title": "AskResponse"
+      },
+      "BatchPredictRequest": {
+        "properties": {
+          "texts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Texts"
+          },
+          "prefix": {
+            "type": "string",
+            "enum": [
+              "query: ",
+              "passage: "
+            ],
+            "title": "Prefix",
+            "default": "query: "
+          }
+        },
+        "type": "object",
+        "required": [
+          "texts"
+        ],
+        "title": "BatchPredictRequest"
+      },
+      "BatchPredictResponse": {
+        "properties": {
+          "embeddings": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Embeddings"
+          },
+          "dim": {
+            "type": "integer",
+            "title": "Dim"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "source_model_id": {
+            "type": "string",
+            "title": "Source Model Id"
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "embeddings",
+          "dim",
+          "count",
+          "source_model_id",
+          "latency_ms"
+        ],
+        "title": "BatchPredictResponse"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded"
+            ],
+            "title": "Status"
+          },
+          "documents_indexed": {
+            "type": "integer",
+            "title": "Documents Indexed"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "model_loaded": {
+            "type": "boolean",
+            "title": "Model Loaded"
+          },
+          "uptime_seconds": {
+            "type": "number",
+            "title": "Uptime Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "documents_indexed",
+          "version",
+          "model_loaded",
+          "uptime_seconds"
+        ],
+        "title": "HealthResponse",
+        "description": "Liveness. Returns 200 even when degraded; readiness is ``documents_indexed``."
+      },
+      "MetadataResponse": {
+        "properties": {
+          "service_version": {
+            "type": "string",
+            "title": "Service Version"
+          },
+          "source_model_id": {
+            "type": "string",
+            "title": "Source Model Id"
+          },
+          "embedding_dim": {
+            "type": "integer",
+            "title": "Embedding Dim"
+          },
+          "max_seq_length": {
+            "type": "integer",
+            "title": "Max Seq Length"
+          },
+          "serialization_format": {
+            "type": "string",
+            "title": "Serialization Format",
+            "description": "How the loaded weights were stored on disk: safetensors or pickle."
+          },
+          "artifact_sha256": {
+            "type": "string",
+            "title": "Artifact Sha256"
+          },
+          "pooling": {
+            "type": "string",
+            "title": "Pooling"
+          },
+          "normalized": {
+            "type": "boolean",
+            "title": "Normalized"
+          },
+          "supported_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Prefixes"
+          },
+          "max_batch_size": {
+            "type": "integer",
+            "title": "Max Batch Size"
+          },
+          "max_text_chars": {
+            "type": "integer",
+            "title": "Max Text Chars"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service_version",
+          "source_model_id",
+          "embedding_dim",
+          "max_seq_length",
+          "serialization_format",
+          "artifact_sha256",
+          "pooling",
+          "normalized",
+          "supported_prefixes",
+          "max_batch_size",
+          "max_text_chars"
+        ],
+        "title": "MetadataResponse"
+      },
+      "PredictRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Text",
+            "examples": [
+              "ما هي مدة التقادم في القانون المدني؟"
+            ]
+          },
+          "prefix": {
+            "type": "string",
+            "enum": [
+              "query: ",
+              "passage: "
+            ],
+            "title": "Prefix",
+            "default": "query: "
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "PredictRequest"
+      },
+      "PredictResponse": {
+        "properties": {
+          "embedding": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Embedding"
+          },
+          "dim": {
+            "type": "integer",
+            "title": "Dim"
+          },
+          "source_model_id": {
+            "type": "string",
+            "title": "Source Model Id"
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "embedding",
+          "dim",
+          "source_model_id",
+          "latency_ms"
+        ],
+        "title": "PredictResponse"
+      },
+      "SourceArticle": {
+        "properties": {
+          "article_number": {
+            "type": "integer",
+            "title": "Article Number"
+          },
+          "citation": {
+            "type": "string",
+            "title": "Citation"
+          },
+          "source_page": {
+            "type": "integer",
+            "title": "Source Page"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "text_ar": {
+            "type": "string",
+            "title": "Text Ar"
+          },
+          "text_en": {
+            "type": "string",
+            "title": "Text En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "article_number",
+          "citation",
+          "source_page",
+          "score",
+          "text_ar",
+          "text_en"
+        ],
+        "title": "SourceArticle",
+        "description": "A cited article behind an answer.\n\nThe article number and its printed citation are what make an answer\nverifiable; a chunk id or a bare page number would not be."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

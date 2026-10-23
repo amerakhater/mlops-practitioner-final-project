@@ -31,6 +31,18 @@ repos:
 
   - repo: local
     hooks:
+      # Keeps the committed contract in step with the code. It rewrites
+      # openapi.json rather than only checking it -- same shape as
+      # `ruff-check --fix`, so the fix is already staged-ready when the hook
+      # fails. `files` keeps it off every unrelated commit: the script imports
+      # the app, which imports torch, and that is a few seconds.
+      - id: export-openapi
+        name: export openapi.json
+        entry: uv run python scripts/export_openapi.py
+        language: system
+        pass_filenames: false
+        files: ^(src/prodllm/api/|src/prodllm/__init__\.py|openapi\.json)
+
       # The coverage gate runs at pre-push, not pre-commit. Running the whole
       # suite on every commit is how hooks end up being bypassed with --no-verify.
       - id: pytest-cov
