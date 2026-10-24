@@ -37,6 +37,15 @@ def test_defaults_are_sane():
     assert settings.max_batch_size == MAX_BATCH_SIZE
     assert settings.max_text_chars == MAX_TEXT_CHARS
     assert settings.log_level == "INFO"
+    assert settings.release_channel == "stable"
+
+
+@pytest.mark.usefixtures("pristine_env")
+def test_the_stream_demo_delay_ships_disabled():
+    """A pause that exists to make curl output legible must never be on by
+    default: shipped non-zero it would add latency to every streamed answer
+    and quietly inflate every figure measured against the service."""
+    assert Settings().stream_demo_delay_ms == 0
 
 
 @pytest.mark.usefixtures("pristine_env")

@@ -1,0 +1,102 @@
+# How `bentoml build` packages this service.
+#
+#   uv run --group serving bentoml build
+#   uv run --group serving bentoml containerize prodllm-rag:latest
+#
+# The result is a Bento: the service code, a pinned dependency set and the
+# metadata needed to turn it into an OCI image. It is the Module 3 counterpart
+# to docker/Dockerfile, which packages the FastAPI app.
+service: "prodllm.serving.service:LegalRagService"
+name: prodllm-rag
+description: >
+  Retrieval-augmented question answering over the Egyptian Civil Code.
+  Asynchronous /ask, token streaming on /ask_stream, and batch re-indexing
+  against the live index. Every answer carries the article citations it was
+  drawn from.
+
+labels:
+  owner: prodllm
+  module: 3-serving
+  # Overridden per rollout slot at deploy time. See the canary section of the
+  # README: this is the label a traffic split is keyed on.
+  release_channel: stable
+
+include:
+  - "src/prodllm/**/*.py"
+  - "eval/questions.jsonl"
+
+exclude:
+  - "**/__pycache__/**"
+  - "**/*.pyc"
+  - "tests/**"
+  - "mlruns/**"
+  # The weights and the FAISS index are deliberately NOT baked into the Bento.
+  # They are 465 MB and 3 MB respectively and are DVC-tracked, so versioning
+  # them a second time inside every build would duplicate the artifact store
+  # and make each Bento as large as the model. They arrive at run time instead:
+  # mounted at PRODLLM_ARTIFACTS_DIR, or downloaded on first start when
+  # PRODLLM_ALLOW_DOWNLOAD is true. docker-compose.yml mounts them.
+  - "artifacts/**"
+  - "data/**"
+  - "reports/**"
+
+python:
+  # Only what the service imports. Notably absent: mlflow, dvc and ragas.
+  # Those are developer and CI tooling, and a tracking server being
+  # unreachable must never be able to take an answer request down with it.
+  packages:
+    - "bentoml>=1.4,<2"
+    - "fastapi>=0.157.0"
+    - "pydantic-settings>=2.6"
+    - "numpy>=1.26"
+    - "torch>=2.5,<3"
+    - "transformers>=4.44,<5"
+    - "safetensors>=0.4"
+    - "faiss-cpu>=1.8"
+    - "httpx>=0.28"
+  # On Linux the default PyPI torch is the CUDA build: 15 nvidia-* wheels and
+  # triton, roughly 5 GB installed, for an encoder that runs on CPU. The same
+  # pin as pyproject.toml's [[tool.uv.index]], restated here because
+  # `bentoml build` resolves this list rather than reading the uv config.
+  extra_index_url:
+    - "https://download.pytorch.org/whl/cpu"
+  # Applies at image-build time (it lands in the Bento's install.sh). The
+  # *lock* step needs the same setting through the environment -- see below.
+  pip_args: "--index-strategy unsafe-best-match"
+  #
+  # Why that strategy is needed at all, in both places:
+  #
+  # By default uv takes each package from the first index that offers it at
+  # all, which is its dependency-confusion guard. The PyTorch index carries an
+  # ancient `certifi` (2022.12.7), so bentoml's `certifi>=2026.10.19` becomes
+  # unsatisfiable even though PyPI has it, and the build fails outright.
+  #
+  # pyproject.toml avoids this because uv lets it bind *only* torch to the
+  # PyTorch index ([tool.uv.sources] with an `explicit` index). A bentofile has
+  # no per-package equivalent -- extra_index_url is a flat list -- so the
+  # choice is between relaxing the strategy and shipping a ~5 GB CUDA image.
+  #
+  # The guard is relaxed knowingly and across these two indexes only: PyPI and
+  # PyTorch's own download server, both first-party and both already trusted by
+  # pyproject.toml. The residual risk is the two official indexes disagreeing
+  # on a version, not an attacker-controlled mirror.
+  #
+  # `pip_args` is NOT consulted when bentoml locks versions -- that path builds
+  # its own `uv pip compile` argv from index settings only. So the build command
+  # has to pass the strategy through uv's environment variable:
+  #
+  #     UV_INDEX_STRATEGY=unsafe-best-match \
+  #       uv run --group serving bentoml build
+  #
+  # Without it, `bentoml build` fails on the certifi conflict above. With it,
+  # the lock pins torch==2.14.1+cpu and exactly one nvidia-* package.
+
+docker:
+  python_version: "3.12"
+  # One intra-op thread per worker, matching the FastAPI image: predictable
+  # per-container memory and latency, scaled with replicas rather than threads.
+  env:
+    PRODLLM_ARTIFACTS_DIR: /home/bentoml/artifacts
+    PRODLLM_TORCH_NUM_THREADS: "1"
+    PRODLLM_LOG_LEVEL: INFO
+    PRODLLM_ALLOW_DOWNLOAD: "false"

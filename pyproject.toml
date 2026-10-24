@@ -83,6 +83,17 @@ tracking = [
     # rather than relying on a transitive dependency that may be dropped.
     "pandas>=2.2",
 ]
+# The BentoML serving layer (Module 3). Its own group rather than a runtime
+# dependency: the FastAPI image in docker/Dockerfile is deliberately thin, and
+# bentoml brings a web stack, a CLI and a build system the embedding API has no
+# use for. The Bento image installs this group; the FastAPI image does not.
+serving = [
+    "bentoml>=1.4,<2",
+]
+# Load generation. Developer tooling only -- it ships in no image.
+load = [
+    "locust>=2.32",
+]
 # RAGAS faithfulness judging. Isolated in its own group because it drags in
 # langchain and datasets -- a large tree the service must never import. The
 # judge talks to an OpenAI-compatible endpoint, so no local LLM is needed.
@@ -108,7 +119,7 @@ default-groups = ["dev"]
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-src = ["src", "tests", "scripts"]
+src = ["src", "tests", "scripts", "load"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "T20", "ANN", "RUF", "PTH", "C4", "ARG"]
@@ -129,6 +140,10 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "ARG", "S101"]
 "scripts/*" = ["T20"]  # these are command-line tools; printing tables is their job
+# The locustfile is a command-line tool too, and its hooks are called by
+# locust's event system with signatures this project does not define -- so
+# printing is its job and annotating **kwargs it never reads is noise.
+"load/*" = ["T20", "ANN001", "ANN003"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

@@ -1,0 +1,17 @@
+[
+  {
+    "chunk_id": "fixture-9001-1",
+    "article_number": 9001,
+    "citation": "FIXTURE ARTICLE 9001 — NOT A PROVISION OF THE EGYPTIAN CIVIL CODE",
+    "text_ar": "هذه مادة اختبارية من صنع المشروع وليست نصا من نصوص القانون المدني المصري. تستخدم للتحقق من إعادة الفهرسة بالدفعات: يلتزم المستأجر في هذه المادة الاختبارية بالمحافظة على العين المؤجرة.",
+    "text_ar_normalized": "هذه ماده اختباريه من صنع المشروع وليست نصا من نصوص القانون المدني المصري. تستخدم للتحقق من اعاده الفهرسه بالدفعات: يلتزم المستاجر في هذه الماده الاختباريه بالمحافظه على العين المؤجره.",
+    "text_en": "FIXTURE DOCUMENT — this is not a provision of the Egyptian Civil Code. It is a synthetic record used to verify batch re-indexing end to end. Its subject matter: in this fixture article, the lessee is bound to preserve the leased property and to return it in the condition in which it was received.",
+    "source_page": 9001,
+    "book": "FIXTURE",
+    "chapter": "FIXTURE",
+    "section": null,
+    "part": 1,
+    "parts_total": 1,
+    "topic": "fixture — batch re-indexing verification"
+  }
+]
