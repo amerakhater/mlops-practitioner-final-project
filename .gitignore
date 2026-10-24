@@ -38,6 +38,13 @@ models/
 # Caches redirected off the C: drive (see README: disk layout)
 .caches/
 
+# The local MLflow tracking server's backend store and artifact root, written
+# by scripts/mlflow_server.py. The run history is the audit trail and must
+# survive, but it is a database plus logged artifacts, not source -- it lives
+# in a named docker volume or here, never in git. What *is* committed is
+# reports/mlflow-comparison.md and reports/eval/, which are generated from it.
+mlruns/
+
 # Test and lint caches / coverage output
 .pytest_cache/
 .ruff_cache/

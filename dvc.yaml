@@ -1,0 +1,58 @@
+# The reproducible path from the source PDF to a queryable index.
+#
+#   dvc repro          rebuild whatever is stale
+#   dvc repro -f       rebuild everything
+#   dvc push / pull    move the tracked data to and from the remote
+#
+# Two stages, because there are two genuinely separate costs. Parsing the PDF
+# is seconds and depends only on the extraction code; embedding 2183 vectors is
+# minutes and depends on the encoder. Splitting them means editing a regex in
+# the parser does not re-embed the corpus, and swapping the encoder does not
+# re-parse the PDF.
+#
+# `uv run` rather than a bare `python`: the stages have different dependency
+# groups -- pdfplumber is only needed for the parse -- and uv resolves each
+# from the same lockfile the rest of the project uses, so a repro cannot
+# silently run against a different set of versions than the tests did.
+stages:
+  build_corpus:
+    cmd: >-
+      uv run --group corpus python scripts/build_corpus.py
+      --pdf data/Law.pdf
+      --out data/processed/articles.json
+      --chunks-out data/processed/chunks.json
+      --max-chunk-chars ${chunking.chunk_size}
+      --chunk-overlap ${chunking.overlap}
+    deps:
+      - data/Law.pdf
+      - scripts/build_corpus.py
+      # The whole package, not just chunk.py: the parse, the bidi repair and
+      # the normalizer all change what lands in the JSON, and a stage that
+      # only watched the chunker would serve a stale corpus after a parser fix.
+      - src/prodllm/corpus
+    params:
+      - chunking.chunk_size
+      - chunking.overlap
+    outs:
+      - data/processed/articles.json
+      - data/processed/chunks.json
+
+  build_index:
+    cmd: >-
+      uv run python scripts/build_index.py
+      --chunks data/processed/chunks.json
+      --out artifacts/index
+      --model ${chunking.embedding_model}
+    deps:
+      - data/processed/chunks.json
+      - scripts/build_index.py
+      # Pooling is a dependency in its own right. Mean-pool and L2-normalize
+      # are what turn hidden states into the vectors stored here, so a change
+      # there silently invalidates every vector in the index.
+      - src/prodllm/embedding
+      - src/prodllm/pooling.py
+      - src/prodllm/rag.py
+    params:
+      - chunking.embedding_model
+    outs:
+      - artifacts/index

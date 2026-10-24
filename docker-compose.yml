@@ -109,6 +109,54 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # The MLflow tracking server, behind a profile so `docker compose up` still
+  # means "run the service as it ships":
+  #
+  #   docker compose --profile tracking up -d mlflow     # UI on :5000
+  #
+  # Experiment tracking is developer and CI infrastructure, not part of the
+  # product: the API container neither talks to it nor knows it exists, so the
+  # tracking server being down can never take an answer request with it.
+  #
+  # SQLite rather than files for the backend store because the Model Registry
+  # requires a database-backed store -- with a plain ./mlruns directory,
+  # `mlflow.register_model` fails with INVALID_PARAMETER_VALUE and the
+  # registry half of this module is simply unavailable.
+  #
+  # --serve-artifacts proxies artifact upload and download through the server,
+  # so a client writes to mlflow-artifacts:/ and never needs a path that
+  # happens to resolve on both the host and inside this container.
+  mlflow:
+    profiles: ["tracking"]
+    image: ghcr.io/mlflow/mlflow:v3.17.2
+    ports:
+      - "5000:5000"
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
+    volumes:
+      - mlflow-store:/mlflow
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys,urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3); sys.exit(0)"
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   hf-cache:
   hf-cache-dev:
+  # Holds mlflow.db and the logged artifacts. A named volume rather than a
+  # bind mount: the run history is what makes the comparison auditable, and a
+  # bind mount into a gitignored directory is one `git clean -xfd` away from
+  # losing it.
+  mlflow-store:

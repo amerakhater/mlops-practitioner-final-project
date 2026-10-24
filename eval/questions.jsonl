@@ -1,0 +1,20 @@
+{"id": "q01", "lang": "ar", "question": "ما هي المدة العامة لتقادم الالتزامات في القانون المدني؟", "expected_articles": [374]}
+{"id": "q02", "lang": "en", "question": "What is the general period of prescription for obligations?", "expected_articles": [374]}
+{"id": "q03", "lang": "ar", "question": "هل يجوز للمدين النزول عن التقادم قبل ثبوت الحق فيه؟", "expected_articles": [388]}
+{"id": "q04", "lang": "en", "question": "What effect does prescription have on the obligation itself?", "expected_articles": [386]}
+{"id": "q05", "lang": "ar", "question": "متى ينعقد العقد بين المتعاقدين؟", "expected_articles": [89]}
+{"id": "q06", "lang": "en", "question": "Can one party revoke or alter a contract without the other's consent?", "expected_articles": [147]}
+{"id": "q07", "lang": "ar", "question": "ما أثر الظروف الاستثنائية الطارئة على التزامات المتعاقد؟", "expected_articles": [147]}
+{"id": "q08", "lang": "en", "question": "Who is liable for damage caused by a thing whose supervision requires special care?", "expected_articles": [178]}
+{"id": "q09", "lang": "ar", "question": "ما المقصود بالخطأ الذي يوجب المسؤولية عن التعويض؟", "expected_articles": [163]}
+{"id": "q10", "lang": "en", "question": "How does the judge fix the amount of damages when the contract is silent?", "expected_articles": [221]}
+{"id": "q11", "lang": "ar", "question": "ما هو تعريف عقد البيع؟", "expected_articles": [418]}
+{"id": "q12", "lang": "en", "question": "What is the vendor bound to do in order to transfer the thing sold?", "expected_articles": [428]}
+{"id": "q13", "lang": "ar", "question": "ما تعريف عقد الإيجار والتزامات المؤجر؟", "expected_articles": [558]}
+{"id": "q14", "lang": "en", "question": "What term applies when a lease is concluded without any agreement as to its term?", "expected_articles": [563]}
+{"id": "q15", "lang": "ar", "question": "ما هو تعريف عقد الوكالة؟", "expected_articles": [699]}
+{"id": "q16", "lang": "en", "question": "What rights does the owner of a thing have over it?", "expected_articles": [802]}
+{"id": "q17", "lang": "ar", "question": "ما الحكم إذا تملك عدة أشخاص شيئا واحدا دون أن تتحدد حصصهم؟", "expected_articles": [825]}
+{"id": "q18", "lang": "en", "question": "How is ownership of immovable property transferred between the parties?", "expected_articles": [934]}
+{"id": "q19", "lang": "ar", "question": "كيف يكسب الحائز ملكية العقار بالتقادم؟", "expected_articles": [968]}
+{"id": "q20", "lang": "en", "question": "What is the owner of a servient tenement forbidden from doing?", "expected_articles": [1023]}

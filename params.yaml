@@ -1,0 +1,17 @@
+# The chunking configuration the pipeline rebuilds.
+#
+# This file is the link between the experiment and the artifact. The sweep in
+# scripts/sweep_chunking.py compares configurations and the winner is promoted
+# to Production in the MLflow Model Registry; scripts/register_best.py writes
+# that winner back here, so `dvc repro` rebuilds the corpus and the index with
+# the configuration that was actually chosen rather than with whatever was
+# hardcoded when the scripts were written.
+#
+# Changing any value below invalidates both stages: chunk_size and overlap
+# change what text goes into a chunk, and embedding_model changes the vector
+# space the chunks are embedded into. DVC sees all three as dependencies, so
+# editing this file and running `dvc repro` is a complete rebuild.
+chunking:
+  chunk_size: 1500
+  overlap: 0
+  embedding_model: intfloat/multilingual-e5-small

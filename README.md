@@ -332,9 +332,95 @@ tokenize → forward → pool → normalize path is covered with mocks and a
 `FakeEmbedder`. Without that seam the most failure-prone module in the
 repository would be the least tested.
 
-Gates are local by design — there is no CI pipeline. `pre-commit` runs ruff,
-formatting, a large-file guard and the `openapi.json` export on every commit,
-and the full suite with the coverage gate on every push.
+`pre-commit` runs ruff, formatting, a large-file guard and the `openapi.json`
+export on every commit, and the full suite with the coverage gate on every
+push. The same checks run in CI, plus an index rebuild and the RAGAS
+faithfulness gate — the local hooks stay because a gate that only exists on a
+runner is one `--no-verify` and a force-push away from being bypassed.
+
+The suite needs no API key and no network: the faithfulness tests drive a stub
+metric, and the MLflow tests skip unless the `tracking` group is installed, so
+`uv sync --locked` followed by `uv run pytest` is enough.
+
+## Experiments, data versioning and the quality gate
+
+The corpus is rebuilt from the PDF by a DVC pipeline, chunking configurations
+are compared in MLflow, and the winner is promoted to Production in the Model
+Registry. Three commands cover the loop:
+
+```bash
+docker compose --profile tracking up -d mlflow                    # UI on :5000
+uv run --group tracking --group eval python scripts/sweep_chunking.py
+uv run --group tracking python scripts/register_best.py
+```
+
+Without Docker, `uv run --group tracking python scripts/mlflow_server.py`
+starts the same server on the same port.
+
+### The data pipeline
+
+```bash
+uv run dvc pull            # fetch Law.pdf and the derived JSON
+uv run dvc repro           # PDF -> articles.json + chunks.json -> artifacts/index/
+uv run dvc push            # publish what changed
+```
+
+Two stages, split along the two real costs: parsing the PDF is seconds and
+depends on the extraction code, embedding 2183 vectors is minutes and depends
+on the encoder. Editing a parser regex therefore does not re-embed the corpus,
+and swapping the encoder does not re-parse the PDF.
+
+[params.yaml](params.yaml) holds `chunk_size`, `overlap` and `embedding_model`,
+and both stages declare them as dependencies — so the promoted configuration
+and the configuration `dvc repro` builds cannot drift apart. `register_best.py`
+writes the winner back into that file.
+
+**The remote is a local directory** (`../.dvc-remote`, relative so a clone
+alongside this repository resolves it identically). `dvc push` and `dvc pull`
+both work and the mechanism is fully demonstrable, but a GitHub runner cannot
+reach it — which is what shapes the CI design below. Moving the remote to S3
+or Google Drive is a one-line config change and the only thing standing
+between CI and a full rebuild.
+
+### Comparing chunking configurations
+
+`scripts/sweep_chunking.py` runs six configurations over three axes, rebuilding
+the index for each — chunk size and overlap change what is *in* the index, so a
+sweep that reused one index would compare six labels over identical vectors.
+Each run logs `chunk_size`, `overlap`, `embedding_model`, RAGAS faithfulness,
+retrieval hit rate and the recorded answers as an artifact.
+
+**The sweep needs a real generator LLM.** With the extractive generator every
+answer is a verbatim copy of its contexts, so faithfulness is ~1.0 for every
+configuration and the comparison is empty. The script refuses to run that way
+rather than producing a flat table that looks like a result. Set
+`PRODLLM_LLM_BASE_URL` and `PRODLLM_LLM_MODEL` — see [.env.example](.env.example).
+
+`scripts/judge_sweep.py` then re-judges every recorded run against a single
+judge instance, because the judge is not deterministic and six judging sessions
+spread over an hour carry drift that is indistinguishable from a difference
+between configurations.
+
+### The faithfulness gate
+
+```bash
+uv run --group eval python scripts/eval_gate.py
+```
+
+Fails below 0.75 RAGAS faithfulness on the fixed twenty-question set in
+[eval/questions.jsonl](eval/questions.jsonl). The set is fixed in the
+mechanical sense: `load_questions` refuses a set whose size has changed, because
+a gate measured against a question set any commit may quietly shrink is not a
+gate.
+
+The gate judges [eval/promoted_run.json](eval/promoted_run.json) — the answers
+recorded when the current configuration was promoted — rather than generating
+fresh ones. That is the local DVC remote again: CI cannot pull the corpus, so
+it cannot rebuild the index, so it cannot generate new answers. The gate
+therefore catches a promoted configuration whose answers are not supported by
+their own contexts, and any tampering with the committed run or the question
+set; it cannot catch a retrieval regression introduced after promotion. See
+[reports/module-2.md](reports/module-2.md).
 
 ## Project layout
 
@@ -348,15 +434,25 @@ src/prodllm/
 ├── instrumentation.py      the @log_latency decorator
 ├── logging_conf.py         JSON formatter
 └── config.py               pydantic-settings, PRODLLM_ prefix
+├── eval/                   question set loading, the recorded run, RAGAS faithfulness
+└── tracking/               the chunking configuration as a registered MLflow model
 scripts/
 ├── build_corpus.py         the source PDF   -> data/processed/articles.json + chunks.json
 ├── build_index.py          chunks.json      -> artifacts/index/
 ├── fetch_weights.py        Hugging Face     -> artifacts/model/ + metadata.json
-└── export_openapi.py       the app          -> openapi.json
+├── export_openapi.py       the app          -> openapi.json
+├── mlflow_server.py        the tracking server, without Docker
+├── sweep_chunking.py       six configurations -> six MLflow runs
+├── judge_sweep.py          re-judge every run in one pass
+├── register_best.py        promote the winner to Production
+└── eval_gate.py            the RAGAS faithfulness gate (exit 1 = fail)
 openapi.json                the committed contract, generated, --check in a hook
+dvc.yaml, params.yaml       the PDF -> corpus -> index pipeline and its parameters
+eval/questions.jsonl        the fixed 20-question test set the gate is defined on
+eval/promoted_run.json      the promoted configuration's recorded answers
 docker/Dockerfile           multi-stage; development, runtime, runtime-thin
-docker-compose.yml          api :8000, api-thin :8001 (thin), dev :8002 (dev)
-reports/module-1.md         measurements and the maturity self-assessment
+docker-compose.yml          api :8000, api-thin :8001, dev :8002, mlflow :5000
+reports/module-2.md         the sweep comparison, the registry, and what the gate misses
 ```
 
 ## Known limitations
@@ -383,5 +479,15 @@ reviewer would otherwise find.
   encoding.
 - **The `topic` field is unpopulated.** Book, chapter and section are captured
   from running headers; the finest hierarchy level is not.
-- **No ONNX, no CI pipeline, no DVC.** All three were deferred by decision, not
-  oversight; see [reports/module-1.md](reports/module-1.md).
+- **No ONNX.** Deferred by decision, not oversight; see
+  [reports/module-1.md](reports/module-1.md). DVC and the CI pipeline were
+  deferred alongside it and have since landed — see
+  [reports/module-2.md](reports/module-2.md).
+- **The faithfulness gate re-judges recorded answers, not fresh ones**, and the
+  DVC remote is a local directory that CI cannot reach. These are the same
+  constraint seen from two ends, and one config change lifts both.
+- **A correct refusal scores zero faithfulness.** When retrieval misses, the
+  generator says so instead of inventing a provision — the right behaviour —
+  and RAGAS scores that refusal 0.0. One question in the fixed set does this
+  on every configuration, which puts a ceiling of roughly 0.95 on the metric
+  and means faithfulness here partly proxies retrieval quality.

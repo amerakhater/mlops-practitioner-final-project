@@ -1,0 +1,33 @@
+schema: '2.0'
+stages:
+  build_corpus:
+    cmd: uv run --group corpus python scripts/build_corpus.py --pdf data/Law.pdf
+      --out data/processed/articles.json --chunks-out data/processed/chunks.json
+      --max-chunk-chars 1500 --chunk-overlap 0
+    deps:
+    - path: data/Law.pdf
+      hash: md5
+      md5: 5086ef5f16f15d856278db943e58e948
+      size: 2599703
+    - path: scripts/build_corpus.py
+      hash: md5
+      md5: d104eb4c60edfe3f771292d4cf6fb763
+      size: 12279
+    - path: src/prodllm/corpus
+      hash: md5
+      md5: b41257f94e952776aeff470eb046f701.dir
+      size: 67029
+      nfiles: 14
+    params:
+      params.yaml:
+        chunking.chunk_size: 1500
+        chunking.overlap: 0
+    outs:
+    - path: data/processed/articles.json
+      hash: md5
+      md5: 602294e52d9d7b35e7e3ac960d8ca8d7
+      size: 1735839
+    - path: data/processed/chunks.json
+      hash: md5
+      md5: 38fb6d401d66165b05c07a02a4207924
+      size: 1764367
