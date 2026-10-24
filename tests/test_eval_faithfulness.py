@@ -1,9 +1,13 @@
 """The faithfulness result, the key resolution, and the extractive refusal.
 
 No test here calls a judge. The scoring path is exercised with a stub metric,
-so the suite stays runnable with no API key and no network -- the same
-property the rest of the suite has with no weights and no index.
+so the suite stays runnable with no API key, no network and without the eval
+dependency group installed -- the same property the rest of the suite has with
+no weights and no index.
 """
+
+import sys
+import types
 
 import pytest
 
@@ -152,16 +156,23 @@ class StubMetric:
 
 @pytest.fixture
 def stub_ragas(monkeypatch):
+    """Stand in for ragas' Faithfulness metric.
+
+    A synthetic module in sys.modules rather than a patch of the installed
+    one. ``score_faithfulness`` imports Faithfulness at call time, and the
+    import machinery returns an already-present sys.modules entry without
+    importing its parent packages -- so this works whether or not the eval
+    group is installed. That matters: the group is isolated on purpose
+    (pyproject.toml), so the test job installs only `dev` and there is no real
+    ragas to patch. These tests exercise score_faithfulness' own logic against
+    StubMetric, which never needed the real metric anyway.
+    """
+
     def install(scores):
         metric = StubMetric(scores)
-        monkeypatch.setattr(
-            module, "score_faithfulness", score_faithfulness, raising=False
-        )
-        import ragas.metrics.collections as collections
-
-        monkeypatch.setattr(
-            collections, "Faithfulness", lambda llm: metric, raising=False
-        )
+        collections = types.ModuleType("ragas.metrics.collections")
+        collections.Faithfulness = lambda llm: metric
+        monkeypatch.setitem(sys.modules, "ragas.metrics.collections", collections)
         return metric
 
     return install
