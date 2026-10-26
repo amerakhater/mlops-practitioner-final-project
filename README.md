@@ -389,6 +389,83 @@ no LLM configured, where the service streams retrieved article text verbatim.
 That is a deliberate project decision, recorded in
 [reports/module-3.md](reports/module-3.md).
 
+## Two-stage retrieval: the cross-encoder re-ranker
+
+The FAISS index scores a query against each article independently, which is
+what makes it fast and also what stops its scores from separating relevant from
+irrelevant (see [Known limitations](#known-limitations)). A cross-encoder reads
+the question and the passage *together*, so it can.
+
+It is **off by default**, because every retrieval and latency figure recorded
+before Module 4 was taken single-stage and the old path has to stay reachable
+for the comparison to mean anything:
+
+```bash
+PRODLLM_RERANKER_ENABLED=true
+PRODLLM_RERANKER_DIRNAME=reranker       # artifacts/reranker, the distilled student
+PRODLLM_RERANK_CANDIDATES=20            # a measured choice, see reports/module-4.md
+```
+
+Both serving surfaces pick it up from the same factory, so FastAPI and the
+Bento cannot disagree about whether re-ranking is on. A missing or unloadable
+artifact logs a warning and serves vector-only rather than failing startup —
+vector-only is a working service, not an error state.
+
+Responses gain a `rerank_score` next to the existing `score`. The cosine is
+kept rather than overwritten: they are different measurements, and a client
+reading `score` as a cosine must not silently start receiving an unbounded
+logit. Having both also makes the second stage auditable from one response — a
+large disagreement between the two orderings is the re-ranker earning its
+latency, and a small one is it not.
+
+### Building the re-ranker
+
+Two stages, because teacher inference is the expensive half and only has to
+happen once per corpus:
+
+```bash
+# 1. what the 568M teacher thinks of the first stage's candidates
+uv run python scripts/rerank_teacher_scores.py --max-queries 600
+
+# 2. train the small student to reproduce the teacher's ordering
+uv run python scripts/distill_reranker.py --epochs 2
+
+# 3. measure: baseline, teacher and student, through one harness
+uv run python scripts/eval_retrieval.py --label vector-only --recall-curve
+uv run python scripts/eval_retrieval.py --label student --reranker artifacts/reranker
+```
+
+## 4-bit quantization of the generative LLM
+
+GPTQ rather than AWQ, for tooling reasons recorded in
+[reports/module-4.md](reports/module-4.md) — AutoAWQ is archived and neither AWQ
+path supports native Windows. The quantizer runs in **its own interpreter**,
+because GPTQModel needs `transformers>=5` behaviour at install time and builds
+from source on Windows; letting it near the locked environment the service and
+CI are tested against is exactly the risk worth avoiding. See
+[requirements-quant.txt](requirements-quant.txt) for the setup and for the four
+Windows-specific blockers it works around.
+
+```bash
+.caches/venv-quant/Scripts/python.exe scripts/quantize_gptq.py
+```
+
+Calibration text comes from this project's own corpus. GPTQ estimates the
+inverse Hessian of each layer's inputs, which is a property of the input
+distribution, so calibrating on web text and then serving Egyptian legal Arabic
+would estimate it from the wrong one.
+
+Two companion scripts need no new dependencies and answer the module's
+analytical questions from measurements rather than from a paper:
+
+```bash
+# activation outliers and per-scheme weight error, on the real model
+uv run python scripts/quantization_analysis.py
+
+# VRAM at FP16/INT8/4-bit, and whether a 70B model fits one 80 GB card
+uv run python scripts/vram_table.py --model llama-3.1-70b --vram-budget 80
+```
+
 ## Run from source
 
 ```bash
@@ -664,6 +741,9 @@ src/prodllm/
 ├── rag.py                  corpus -> chunks -> FAISS index; question -> answer + citations
 ├── corpus/                 PDF extraction: column-aware parse, bidi repair, normalize, validate
 ├── embedding/              Embedder ABC, FakeEmbedder, TorchEmbedder (transformers)
+├── rerank/                 cross-encoder second stage: Reranker ABC, teacher/student, fake
+├── quant/                  group-wise integer quantization and 4-bit packing (offline only)
+├── bench/                  the shared benchmark harness: one timing loop, one hardware record
 ├── pooling.py              mean pooling + L2 normalization, pure numpy, unit-tested
 ├── streaming.py            async token streaming; OpenAI-compatible SSE + extractive
 ├── api/                    routes, schemas, DI seams, lifespan, correlation-ID middleware
@@ -683,7 +763,14 @@ scripts/
 ├── sweep_chunking.py       six configurations -> six MLflow runs
 ├── judge_sweep.py          re-judge every run in one pass
 ├── register_best.py        promote the winner to Production
-└── eval_gate.py            the RAGAS faithfulness gate (exit 1 = fail)
+├── eval_gate.py            the RAGAS faithfulness gate (exit 1 = fail)
+├── eval_retrieval.py       retrieval quality + latency, with or without the re-ranker
+├── eval_ragas_ab.py        faithfulness before/after, both runs judged by one judge
+├── rerank_teacher_scores.py  distillation stage 1: what the 568M teacher thinks
+├── distill_reranker.py     distillation stage 2: train the student on those scores
+├── quantization_analysis.py  activation outliers and per-scheme error, on the real model
+├── quantize_gptq.py        GPTQ 4-bit, measured before and after (separate interpreter)
+└── vram_table.py           VRAM at FP16/INT8/4-bit, and the 70B-on-one-GPU arithmetic
 openapi.json                the committed contract, generated, --check in a hook
 dvc.yaml, params.yaml       the PDF -> corpus -> index pipeline and its parameters
 eval/questions.jsonl        the fixed 20-question test set the gate is defined on
@@ -697,7 +784,10 @@ load/locustfile.py          the 50-user load test, driven by eval/questions.json
 tests/fixtures/            sample chunks, and a labelled fixture for re-indexing
 reports/module-2.md         the sweep comparison, the registry, and what the gate misses
 reports/module-3.md         the serving design, the measured p95, and the canary
+reports/module-4.md         the re-ranker, 4-bit quantization, and the trade-offs
+reports/eval/               recorded evaluation runs and their summaries
 reports/locust/             the load-test report and its raw CSVs
+requirements-quant.txt      the offline quantization toolchain, and why it is isolated
 ```
 
 ## Known limitations
@@ -712,7 +802,10 @@ reviewer would otherwise find.
   e5-family models compress similarities into a narrow high band, so
   `min_score` defaults to disabled rather than to a value tuned to look good on
   a handful of examples. The real fix is a cross-encoder reranker, which scores
-  query/passage pairs jointly and does separate.
+  query/passage pairs jointly and does separate — **built in Module 4** and
+  off by default; see [reports/module-4.md](reports/module-4.md). `min_score`
+  is still disabled, because the re-ranker changes the *ordering* of candidates
+  and not the cosine the threshold would be applied to.
 - **Some English article bodies absorb the heading that follows them.**
   Article 388's English text runs on into "Chapter VI Proof of Obligations …".
   Arabic text and all article numbering are unaffected, and no citation points
