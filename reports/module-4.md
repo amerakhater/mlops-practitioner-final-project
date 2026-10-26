@@ -10,8 +10,8 @@ The short version:
 
 | | before | after |
 |---|---|---|
-| Retrieval MRR | 0.597 | *see [The re-ranker](#the-re-ranker)* |
-| Retrieval hit@1 | 0.500 | *see below* |
+| Retrieval MRR | 0.597 | **0.825 with the teacher** / 0.108 with the distilled student |
+| Retrieval hit@1 | 0.500 | **0.800 with the teacher** / 0.050 with the distilled student |
 | Generator weights on disk | 2 944 MiB (BF16) | **1 097 MiB (4-bit GPTQ) — 2.69×** |
 | Generator perplexity, held-out corpus | 15.355 | **16.270 (+5.96 %)** |
 | Qwen2.5-1.5B on this 4 GiB GPU | does not fit (4.48 GiB needed) | fits (2.37 GiB) |
@@ -202,7 +202,113 @@ have, and 99.1 % hit@1 is a statement about an easy task. It establishes that
 the labels carry signal. The honest measurement of what re-ranking buys is the
 20-question evaluation below, on questions written independently of the corpus.
 
-<!-- PENDING: distillation results, student vs teacher vs baseline table -->
+### The result: the stage works, the distillation does not
+
+Both re-rankers were run through the same `scripts/eval_retrieval.py` path, on
+the same twenty questions, against the same index.
+
+| | vector-only | **+ teacher** (568M) | + distilled student (103M) |
+|---|---|---|---|
+| MRR | 0.5975 | **0.8250** | 0.1083 |
+| hit-rate@5 | 0.7500 | **0.9000** | 0.2000 |
+| hit@1 | 0.5000 | **0.8000** | 0.0500 |
+| mean end-to-end latency | **24.9 ms** | 45 156 ms | 1 532 ms |
+
+**The teacher reaches the ceiling exactly.** 0.90 hit-rate is not a good score
+that happens to be near the 0.90 in the depth table above — it *is* that
+number. The teacher's only two failures are **q01 and q09**, which are
+precisely the two questions whose gold article is not in the top-20 candidate
+pool at all. On the eighteen questions where the right article was available
+to be promoted, it put sixteen at rank 1 and the other two at rank 4. There is
+no headroom left in this candidate pool for a second stage to find; the
+remaining loss is first-stage Arabic recall, which is a Module 1 defect.
+
+So the premise is confirmed with a measurement rather than an argument: **15
+points of hit-rate and 30 points of hit@1 really were sitting in the pool,
+retrieved and mis-ordered**, and a cross-encoder recovers all of the first and
+most of the second.
+
+**And the distilled student is worse than no re-ranker at all.** Not
+marginally — it takes MRR from 0.5975 to 0.1083 and hit@1 from 0.50 to 0.05,
+while costing 61× the latency. It is an unambiguous negative result and the
+artifact is not deployed. `PRODLLM_RERANKER_ENABLED` stays `false`.
+
+#### Why it failed, measured rather than guessed
+
+The first thing to rule out was a bug in my own pipeline, because a
+train/serve input mismatch produces exactly this signature. It is ruled out:
+stage 1 stores the output of `rerank_payload()` as the passage text, training
+consumes those stored strings verbatim, and the serving path calls the same
+function — the student sees the same format in training and in production.
+The teacher, run through that identical serving path, scores 0.8250.
+
+The student did learn. On the 60 held-out pseudo-query lists it never trained
+on:
+
+| | student |
+|---|---|
+| picks the teacher's top-1 | 68.3 % (41/60) |
+| teacher's top-1 inside its top 3 | 85.0 % |
+| mean listwise KL | 1.2203 |
+| mean Spearman against teacher | 0.5644 |
+| *KL of a constant predictor* | *2.7681 — the floor it had to beat* |
+
+That is a model 56 % of the way from "emits a constant" to "matches the
+teacher", not a failed optimisation. Two things explain the collapse, and they
+compound.
+
+**It is undertrained.** Validation KL was **still falling** when the run
+ended — 2.0334 after epoch 1, 1.2203 after epoch 2 — so two epochs stopped
+short of convergence rather than at it. 86.6 minutes of CPU bought two epochs
+over 540 lists; the budget, not the schedule, chose the stopping point.
+
+**But undertraining is not the main cause, and the measurement separates
+them.** The same weights were asked to agree with the teacher on both
+distributions, over candidate lists of the same size (20):
+
+| student picks the teacher's top-1 | agreement | against chance (1/20 = 5 %) |
+|---|---|---|
+| held-out **pseudo-queries** | 68.3 % | **13.7× chance** |
+| the twenty **real questions** | **5.0 %** (1/20) | **exactly chance** |
+
+Mean Spearman against the teacher falls the same way, 0.5644 to 0.1911. An
+undertrained model is uniformly mediocre; it does not score 13.7× chance on
+one distribution and precisely chance on another. **The student did not fail
+to learn a scoring function — it learned one that does not transfer from
+declarative clauses to interrogative questions.**
+
+This was predicted before the run, in "What is not measured here" below: a
+pseudo-query is a clause copied verbatim out of its own article, so the
+cheapest way to satisfy the training objective is to detect lexical overlap,
+and lexical overlap is exactly the signal that disappears when a user asks a
+question in their own words. The pseudo-query experiment measured the quality
+of the *labels* (99.1 % hit@1, earlier) and said nothing about the quality of
+the *queries*, which is where the failure was.
+
+#### What this costs, and what would fix it
+
+The honest position is that **this project has a validated second-stage
+design and no deployable second stage.** The teacher proves the headroom is
+real and is 45 seconds per question on this CPU. The student is fast enough
+to think about and ranks at chance. Neither ships, and the served
+configuration is unchanged: single-stage retrieval, `24.9 ms`,
+`PRODLLM_RERANKER_ENABLED=false`.
+
+Three things would be tried next, in this order, and none is a tuning tweak:
+
+1. **Fix the training queries, not the model.** Generate interrogative
+   pseudo-queries from each article with an LLM instead of lifting clauses.
+   This is the diagnosed cause and the cheapest high-value change — and it is
+   blocked here only by there being no generation endpoint configured, which
+   is the same constraint recorded in Module 2.
+2. **Train to convergence.** Validation KL was still falling; two epochs was a
+   budget, not a decision.
+3. **Keep more layers.** 4 of 12 was chosen to fit a request on CPU. If 1 and
+   2 close the gap, the capacity question can be asked honestly; asking it
+   now would be tuning against a broken objective.
+
+What is *not* on that list is abandoning the second stage. The teacher's 0.8250
+settles that question in the other direction.
 
 ## Quantization
 
@@ -454,6 +560,116 @@ and grouped-query attention is doing as much work as the quantizer: 8 KV heads
 against 64 query heads is an 8× cut in cache size, and without it the 4-bit row
 would hold about 18 k tokens instead of 143 k.
 
+## Back through the serving stack
+
+An optimization that is only measured in a script has not been shipped. Both
+configurations were run against the real BentoML service with the Module 3
+load harness — same `load/locustfile.py`, same twenty questions, same mix —
+so the numbers below are comparable to that report's.
+
+**The deployed path is not regressed.** Module 4 adds a factory call at
+startup, a branch in `retrieve()`, and a nullable field on every response, so
+the first question is whether the single-stage path still performs. 50 users,
+3 minutes, re-ranking off:
+
+| | Module 3 | **Module 4, re-ranking off** |
+|---|---|---|
+| requests | 9131 | **9204** |
+| failures | 0 | **0** |
+| `/ask` p50 | 42 ms | **37 ms** |
+| `/ask` p95 | 81 ms | **55 ms** |
+| `/ask` throughput | 27.3 req/s | **27.4 req/s** |
+
+No regression. The p95 improvement is *not* claimed as a Module 4 speedup —
+nothing here makes single-stage retrieval faster, and the likeliest
+explanation is machine state between two runs a day apart. The result that
+matters is the absence of a regression, and 0 failures across 9204 requests.
+
+**Re-ranking works end to end in the service, and costs what it costs.** With
+`PRODLLM_RERANKER_ENABLED=true`, a single `/ask` returns populated
+`rerank_score` fields and an order that follows them rather than the vector
+scores:
+
+```
+art 1024  score 0.8371  rerank_score  0.4047
+art  196  score 0.8401  rerank_score  0.2602
+art  631  score 0.8388  rerank_score -0.0397
+art  520  score 0.8416  rerank_score -0.1156
+art   30  score 0.8385  rerank_score -0.1782
+```
+
+The vector scores are not monotonic down that list and the re-rank scores are,
+which is the second stage reordering in plain sight — and the reason both
+fields are kept on the response instead of one overwriting the other.
+
+Under load, at **one tenth** the concurrency of the baseline run:
+
+| | re-ranking off (50 users) | re-ranking on (5 users) |
+|---|---|---|
+| `/ask` p50 | 37 ms | 2400 ms |
+| `/ask` p95 | **55 ms** | **3400 ms** |
+| `/ask` throughput | 27.4 req/s | 1.1 req/s |
+| `/status` p95 (the control) | 11 ms | 17 ms |
+
+`/status` touches no model and stays flat in both runs, which places the cost
+in the cross-encoder forward pass rather than in admission queuing — the same
+control Module 3 used to show the service was not queue-bound.
+
+So the second stage costs roughly **62× the p95 at a tenth of the load**, and
+**25× the throughput**. On a GPU this is a batched forward pass over 20 pairs
+and the trade would be arguable. On this CPU it is not, and that is before
+the quality result, which rejects the student on its own.
+
+## The trade-off: speed, memory, quality
+
+The three do not trade against each other at a fixed exchange rate. **Which
+pair is in tension depends on what binds on the hardware you have**, and this
+project measured two optimizations that pull in opposite directions, which is
+what makes the point concrete rather than a slogan.
+
+| | memory | speed | quality |
+|---|---|---|---|
+| 4-bit GPTQ on the generator | **÷2.69** (2944 → 1097 MiB) | ÷3.2 *here*, ×2–3 on a GPU | −5.96 % perplexity |
+| cross-encoder re-ranking (teacher) | **+1083 MiB** (568M params, fp16) | **÷62** p95 | **+0.2275 MRR**, +0.30 hit@1 |
+
+**Quantization buys memory with quality, and its effect on speed is a
+property of the hardware, not of the method.** This is the finding this
+project can demonstrate rather than assert, because it has the unusual case
+that makes it visible. 4-bit is normally faster because token generation is
+memory-bandwidth-bound: a quarter of the bytes crossing the bus per token is
+most of the win, and fused kernels dequantize inside the matmul so the
+unpacking is free. Remove the fused kernel — no reachable CUDA device — and
+the same weights get dequantized to float in a separate pass before a normal
+float matmul, which is strictly more work than never having quantized. Hence
+52.7 → 16.3 tok/s here. **The 2.69× memory saving is a property of the
+format; the speed change is a property of the kernel.** Only one of those
+transfers to another machine.
+
+**Re-ranking buys quality with both speed and memory**, which is the rarer
+and more honest-looking trade: it adds a whole second model and a forward
+pass per candidate, and in return recovers 0.2275 MRR that the first stage
+had retrieved and mis-ordered. Nothing about it is free, and on this CPU the
+bill is 62× p95.
+
+**Quantizing weights does nothing for the KV cache**, which is the trap in
+reading the VRAM table as pure headroom. On the 70B analysis the cache is
+0.3125 MiB per token regardless of weight precision, so at long context it
+overtakes the saving entirely: 4-bit weights free 96.5 GiB and a 128k-token
+cache costs 40 GiB back. Grouped-query attention, not the quantizer, is what
+makes that cache affordable at all — 8 KV heads against 64 query heads is an
+8× cut, and without it the same budget would hold ~18k tokens instead of
+~143k.
+
+**What binds here decides both calls.** This box has a 4 GiB GPU it cannot
+reach and sixteen CPU cores it can. Memory is the binding constraint on the
+generator — Qwen2.5-1.5B does not fit in 4 GiB at FP16 and does at 4 bits —
+so quantization is the optimization that converts an impossible deployment
+into a possible one, and 6 % perplexity is a reasonable price. Compute is the
+binding constraint on retrieval, where there is no spare CPU budget at all,
+so a second model in the request path is the wrong trade at any quality it
+could deliver. Same project, same afternoon, opposite answers: **the
+optimization is chosen by the constraint, not by the technique.**
+
 ## What is not measured here
 
 Listed rather than buried, because on this hardware the gap between what the
@@ -478,13 +694,17 @@ parallel over candidates and is normally served on a GPU in a single batched
 forward pass. The figures here are 16-core CPU figures at batch size 8, which
 is the deployment this project actually has.
 
-**Pseudo-queries are not questions.** The student is distilled on clauses
-lifted from the articles, because the twenty labelled questions are the test
-set and there is no LLM available to generate synthetic ones. Training queries
-are therefore declarative where test queries are interrogative. This is the
-single biggest threat to the student's measured quality and the most likely
-explanation if it underperforms its teacher by more than the capacity gap
-predicts.
+**Pseudo-queries are not questions — and this is what happened.** The student
+is distilled on clauses lifted from the articles, because the twenty labelled
+questions are the test set and there is no LLM available to generate synthetic
+ones. Training queries are therefore declarative where test queries are
+interrogative. This paragraph was written before the student was evaluated,
+naming this as the single biggest threat to its quality and the most likely
+explanation if it underperformed. It is now the measured cause: 68.3 %
+agreement with the teacher on held-out pseudo-queries against 5.0 % -- chance
+-- on real questions. It is left standing rather than rewritten, because a
+risk identified in advance and then confirmed is worth more as a record than
+as a tidy conclusion.
 
 **The distillation stages are not in `dvc.yaml`.** The corpus and index stages
 are; these are not. `dvc repro` runs every stage, and teacher scoring takes
@@ -500,3 +720,36 @@ Egyptian Civil Code articles rather than WikiText. That makes it the right
 number for *this* deployment and the wrong number to compare against a
 published figure for the same model. Passages are scored individually rather
 than concatenated, for reasons given in `scripts/quantize_gptq.py`.
+
+## Module 4 checklist
+
+**Track B**
+
+| Requirement | Status |
+|---|---|
+| 4-bit quantization of the generative LLM | **Done — as GPTQ, not AWQ.** Real checkpoint, `artifacts/qwen2.5-1.5b-gptq-4bit`, 1096.6 MiB against 2944.4 MiB BF16 (2.69×). AWQ was ruled out: AutoAWQ archived May 2025 and the path needs a reachable GPU |
+| Distil the re-ranker | **Done, and it failed.** 568M teacher → 103M 4-layer student, listwise KL. Student ranks at chance on real questions (MRR 0.108 vs a 0.597 baseline); not deployed, cause diagnosed |
+| RAGAS before and after optimization | **Not run — blocked.** `scripts/eval_ragas_ab.py` is written and refuses to score the extractive generator; it needs a judge API key, which is not configured on this machine |
+| Measure and document the latency improvement | **Done, and the sign is negative.** Second stage costs 62× p95 at a tenth the load; 4-bit costs 3.2× throughput on this CPU. Both measured, both explained |
+| Compare quality before and after quantization | **Done** — perplexity 15.3550 → 16.2697 (+5.96 %) on 48 held-out corpus passages |
+| Optimized model's size and hardware requirements | **Done** — 1096.6 MiB weights, 1111.7 MiB on disk; VRAM table gives the fit at FP16/INT8/4-bit with KV cache |
+| Trade-off between speed, memory and quality | **Done** — [above](#the-trade-off-speed-memory-quality), with the finding that quantization's speed effect is a property of the kernel, not the format |
+
+**General optimization module**
+
+| Requirement | Status |
+|---|---|
+| Why symmetric INT8 behaves poorly on LLMs | **Done, measured on this model** — 196 modules: activations 73.3× max/median against weights 4.4×; `mlp.down_proj` 429.6×; per-channel beats per-tensor in 196/196 |
+| AWQ **or GPTQ** 4-bit on a small model (e.g. Qwen2.5-1.5B) | **Done** — GPTQ, Qwen2.5-1.5B-Instruct, g=128 |
+| Perplexity or task accuracy before and after | **Done** — perplexity, disjoint seeded calibration and evaluation splits |
+| VRAM table for FP16 / INT8 / 4-bit | **Partial.** VRAM and quality columns are complete and derived; the tokens/sec-per-precision column would need a GPU and is absent rather than invented |
+| 70B on a single 80 GB GPU | **Done** — does not fit at FP16 (131.4 GiB of weights alone), fits at 4-bit with ~143k tokens of KV headroom |
+| Consistent benchmark harness, hardware recorded | **Done** — `prodllm.bench`; every result JSON carries the hardware block |
+| Redeploy the winning artifact and re-benchmark through the serving stack | **Done** — 9204 requests, 0 failures, `/ask` p95 55 ms, no regression against Module 3's 81 ms; re-ranking verified live in the service and rejected on its measured cost |
+
+**One item is incomplete:** the RAGAS A/B needs a judge key. Everything else is
+measured. The two headline results are that **4-bit quantization is a good
+trade on this hardware** — 2.69× memory for 6 % perplexity — and that **the
+re-ranking stage is worth building and the distilled student is not worth
+deploying**, which is a negative result with a diagnosed cause rather than an
+unfinished one.

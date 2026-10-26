@@ -396,9 +396,20 @@ what makes it fast and also what stops its scores from separating relevant from
 irrelevant (see [Known limitations](#known-limitations)). A cross-encoder reads
 the question and the passage *together*, so it can.
 
-It is **off by default**, because every retrieval and latency figure recorded
-before Module 4 was taken single-stage and the old path has to stay reachable
-for the comparison to mean anything:
+It is **off by default, and Module 4 measured that it should stay off.** The
+design is validated and the distilled artifact is not: the 568M teacher lifts
+MRR from 0.597 to 0.825 and hit@1 from 0.50 to 0.80 -- reaching the exact
+ceiling the candidate pool allows -- but it costs 45 s per question on this
+CPU. The 103M student distilled from it ranks **at chance** on real questions
+(MRR 0.108, worse than no re-ranker at all) because it was trained on clauses
+lifted from articles and does not transfer to interrogative queries. The full
+diagnosis is in [reports/module-4.md](reports/module-4.md); treat the flag
+below as a working integration awaiting a usable artifact, not as a
+recommended configuration.
+
+The original reason for the default still holds too: every retrieval and
+latency figure recorded before Module 4 was taken single-stage and the old
+path has to stay reachable for the comparison to mean anything.
 
 ```bash
 PRODLLM_RERANKER_ENABLED=true

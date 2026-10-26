@@ -1,0 +1,52 @@
+{
+  "label": "teacher",
+  "params": {
+    "stage": "teacher",
+    "reranker": "BAAI/bge-reranker-v2-m3",
+    "reranker_parameters": 567755777,
+    "top_k": 5,
+    "rerank_candidates": 20,
+    "max_seq_length": 512,
+    "embedding_model": "intfloat/multilingual-e5-small"
+  },
+  "metrics": {
+    "retrieval_hit_rate": 0.9,
+    "retrieval_mrr": 0.825,
+    "retrieval_hit_at_1": 0.8,
+    "grounded_rate": 1.0,
+    "mean_top_score": 0.8768209964036942,
+    "mean_latency_ms": 45155.70955499934,
+    "mean_contexts": 5.0,
+    "questions": 20.0
+  },
+  "retrieve_latency": {
+    "repeats": 2,
+    "warmup": 2,
+    "mean_ms": 39214.31809999922,
+    "p50_ms": 38862.11500000354,
+    "p95_ms": 39566.521199994895,
+    "min_ms": 38862.11500000354,
+    "max_ms": 39566.521199994895,
+    "stdev_ms": 498.09040072373364
+  },
+  "recall_curve": null,
+  "hardware": {
+    "platform": "Windows-10-10.0.19045-SP0",
+    "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+    "python_version": "3.12.1",
+    "logical_cores": 16,
+    "ram_total_gib": 31.6715087890625,
+    "torch_version": "2.14.1+cpu",
+    "torch_cuda_available": false,
+    "torch_cuda_build": null,
+    "torch_num_threads": 8,
+    "gpus": [
+      {
+        "name": "NVIDIA RTX A2000 Laptop GPU",
+        "memory_total_mib": 4096,
+        "driver_version": "591.66",
+        "compute_capability": "8.6"
+      }
+    ]
+  }
+}
