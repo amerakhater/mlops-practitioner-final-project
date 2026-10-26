@@ -53,6 +53,36 @@ class EvalRecord:
             return True
         return bool(set(self.expected_articles) & set(self.retrieved_articles))
 
+    @property
+    def reciprocal_rank(self) -> float:
+        """1/rank of the first expected article, or 0.0 if none was retrieved.
+
+        Rank-aware, and that is the point of recording it. ``retrieval_hit``
+        asks only whether the right article appeared somewhere in the top-k,
+        so it is blind to the one thing a re-ranker is for: moving the right
+        article from position four to position one. A second stage can leave
+        the hit rate completely unchanged and still be the difference between
+        an answer that leads with the governing article and one that buries
+        it under three near-misses -- and with a generator reading the
+        passages in order, position is not cosmetic.
+        """
+        expected = set(self.expected_articles)
+        if not expected:
+            return 1.0
+        for position, number in enumerate(self.retrieved_articles, start=1):
+            if number in expected:
+                return 1.0 / position
+        return 0.0
+
+    @property
+    def hit_at_1(self) -> bool:
+        """True when the top-ranked article is an expected one."""
+        if not self.expected_articles:
+            return True
+        if not self.retrieved_articles:
+            return False
+        return self.retrieved_articles[0] in set(self.expected_articles)
+
 
 @dataclass
 class EvalRun:
@@ -83,6 +113,10 @@ class EvalRun:
         total = len(self.records)
         return {
             "retrieval_hit_rate": sum(r.retrieval_hit for r in self.records) / total,
+            # Rank-aware, so a re-ranker that reorders the same five articles
+            # is visible here even when the hit rate does not move at all.
+            "retrieval_mrr": sum(r.reciprocal_rank for r in self.records) / total,
+            "retrieval_hit_at_1": sum(r.hit_at_1 for r in self.records) / total,
             "grounded_rate": sum(r.grounded for r in self.records) / total,
             "mean_top_score": sum(r.top_score for r in self.records) / total,
             "mean_latency_ms": sum(r.latency_ms for r in self.records) / total,

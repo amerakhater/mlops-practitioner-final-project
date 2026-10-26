@@ -143,6 +143,10 @@ def test_ask_shapes_each_source_through_the_shared_schema():
             "citation": "Egyptian Civil Code, Article 374",
             "source_page": 57,
             "score": 0.9049,
+            # Null, not absent: this stub core retrieves vector-only, and the
+            # field is how a client tells "no re-ranker ran" apart from "the
+            # re-ranker scored it zero".
+            "rerank_score": None,
             "text_ar": "تتقادم الالتزامات بخمس عشرة سنة",
             "text_en": "Obligations are prescribed in fifteen years.",
         }

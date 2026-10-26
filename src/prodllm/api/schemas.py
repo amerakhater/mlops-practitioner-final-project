@@ -42,7 +42,22 @@ class SourceArticle(BaseModel):
     article_number: int
     citation: str
     source_page: int
-    score: float
+    score: float = Field(
+        description=(
+            "First-stage cosine similarity against the article's embedding. "
+            "Comparable across requests; see rerank_score for the ordering "
+            "actually used when a re-ranker is attached."
+        )
+    )
+    rerank_score: float | None = Field(
+        default=None,
+        description=(
+            "Cross-encoder relevance logit, or null when retrieval was "
+            "vector-only. Unbounded and not comparable across models or "
+            "across requests -- only the ordering within one response is "
+            "meaningful."
+        ),
+    )
     text_ar: str
     text_en: str
 

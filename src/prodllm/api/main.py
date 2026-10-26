@@ -24,7 +24,12 @@ from prodllm.api.routes import router
 from prodllm.config import get_settings
 from prodllm.embedding.torch_embedder import TorchEmbedder
 from prodllm.logging_conf import configure_logging
-from prodllm.rag import RagEngine, VectorIndex, build_generator
+from prodllm.rag import (
+    RagEngine,
+    VectorIndex,
+    build_generator,
+    build_reranker,
+)
 
 logger = logging.getLogger("prodllm.api")
 
@@ -72,6 +77,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     generator=build_generator(settings),
                     top_k=settings.top_k,
                     min_score=settings.min_score,
+                    reranker=build_reranker(settings),
+                    rerank_candidates=settings.rerank_candidates,
                 )
                 logger.info(
                     "Corpus index loaded",
