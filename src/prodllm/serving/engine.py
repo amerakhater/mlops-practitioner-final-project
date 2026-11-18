@@ -31,6 +31,7 @@ from prodllm.rag import (
     ReindexResult,
     VectorIndex,
     build_generator,
+    build_reranker,
 )
 from prodllm.streaming import StreamGenerator, build_stream_generator, stream_answer
 
@@ -148,6 +149,8 @@ class RagServiceCore:
             generator=build_generator(self.settings),
             top_k=self.settings.top_k,
             min_score=self.settings.min_score,
+            reranker=build_reranker(self.settings),
+            rerank_candidates=self.settings.rerank_candidates,
         )
 
     # -------------------------------------------------------------- status

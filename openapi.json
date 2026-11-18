@@ -539,7 +539,20 @@
           },
           "score": {
             "type": "number",
-            "title": "Score"
+            "title": "Score",
+            "description": "First-stage cosine similarity against the article's embedding. Comparable across requests; see rerank_score for the ordering actually used when a re-ranker is attached."
+          },
+          "rerank_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Score",
+            "description": "Cross-encoder relevance logit, or null when retrieval was vector-only. Unbounded and not comparable across models or across requests -- only the ordering within one response is meaningful."
           },
           "text_ar": {
             "type": "string",

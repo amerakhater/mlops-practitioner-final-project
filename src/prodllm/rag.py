@@ -20,7 +20,7 @@ legally unacceptable:
 import json
 import logging
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -31,6 +31,7 @@ import numpy as np
 from prodllm.corpus.normalize import normalize_arabic
 from prodllm.embedding.base import Embedder
 from prodllm.instrumentation import log_latency
+from prodllm.rerank.base import Reranker
 
 logger = logging.getLogger("prodllm.rag")
 
@@ -67,6 +68,34 @@ DEFAULT_TOP_K = 5
 # top_k of 5 could come back as the same article five times over.
 CANDIDATE_MULTIPLIER = 4
 
+# How many deduplicated articles the first stage hands the re-ranker. 20 for
+# 5 returned: deep enough that the cross-encoder has something to find below
+# the vector cut, shallow enough that the per-request cost stays bounded --
+# this is the number that multiplies into the re-ranking latency, because a
+# cross-encoder is one forward pass per pair.
+DEFAULT_RERANK_CANDIDATES = 20
+
+
+def rerank_payload(article: "RetrievedArticle") -> str:
+    """The passage text a cross-encoder scores the question against.
+
+    Both languages, joined. The corpus is bilingual and the question may be in
+    either language, so handing the re-ranker only one side would make it
+    score an Arabic question against English text it was never going to match
+    well -- the exact cross-lingual failure the two-vectors-per-chunk design in
+    ``chunk_payloads`` exists to avoid at the first stage.
+
+    The citation leads, so the model sees which article it is scoring. It is a
+    short prefix and it is what the generator sees too, which keeps the two
+    stages looking at the same thing.
+    """
+    parts = [f"[{article.citation}]"]
+    if article.text_ar:
+        parts.append(article.text_ar)
+    if article.text_en:
+        parts.append(article.text_en)
+    return "\n".join(parts)
+
 
 @dataclass(frozen=True)
 class RetrievedArticle:
@@ -81,6 +110,14 @@ class RetrievedArticle:
     book: str | None = None
     chapter: str | None = None
     section: str | None = None
+    # The cross-encoder's logit, or None when no re-ranker ran. Kept *beside*
+    # ``score`` rather than replacing it, because the two are not the same
+    # measurement and a client that has been reading ``score`` as a cosine
+    # should not silently start receiving an unbounded logit instead. Having
+    # both is also what makes the re-ranker auditable from a single response:
+    # a large disagreement between the two orderings is the second stage
+    # earning its latency, and a small one is it not.
+    rerank_score: float | None = None
 
     def as_source(self) -> dict[str, Any]:
         """The shape returned in an API response's ``sources`` list."""
@@ -89,6 +126,9 @@ class RetrievedArticle:
             "citation": self.citation,
             "source_page": self.source_page,
             "score": round(self.score, 4),
+            "rerank_score": (
+                None if self.rerank_score is None else round(self.rerank_score, 4)
+            ),
             "text_ar": self.text_ar,
             "text_en": self.text_en,
         }
@@ -267,6 +307,52 @@ def build_generator(settings: Any) -> Generator:
     return ExtractiveGenerator()
 
 
+def build_reranker(settings: Any) -> Reranker | None:
+    """Pick a second retrieval stage from configuration, or None.
+
+    Returns None in three cases, and all three are a working service rather
+    than an error: re-ranking is switched off, the artifact is not on disk, or
+    loading it failed. Vector-only retrieval is what this project served for
+    three modules; downgrading to it is a measurable quality loss and is logged
+    as a warning, but refusing to start would be worse.
+
+    ``local_files_only`` is set when the source is a directory and cleared when
+    it is a Hugging Face id. A directory is the baked-in artifact, and reaching
+    out to the network for it would mean the image's provenance could not be
+    verified -- the same argument as ``TorchEmbedder.from_settings``. An
+    explicit model id, by contrast, is a deliberate request to fetch.
+    """
+    if not settings.reranker_enabled:
+        logger.info("Re-ranking disabled; retrieval is vector-only")
+        return None
+
+    source = settings.reranker_source
+    from_directory = not settings.reranker_model_id
+    if from_directory and not Path(source).is_dir():
+        logger.warning(
+            "Re-ranking enabled but no re-ranker artifact found; "
+            "falling back to vector-only retrieval",
+            extra={"reranker_source": source},
+        )
+        return None
+
+    try:
+        from prodllm.rerank.cross_encoder import CrossEncoderReranker
+
+        return CrossEncoderReranker.load(
+            source,
+            max_seq_length=settings.reranker_max_seq_length,
+            batch_size=settings.reranker_batch_size,
+            local_files_only=from_directory,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Re-ranker failed to load; falling back to vector-only retrieval",
+            extra={"reranker_source": source, "error": str(exc)},
+        )
+        return None
+
+
 class VectorIndex:
     """A flat inner-product FAISS index over unit-norm chunk embeddings.
 
@@ -435,12 +521,25 @@ class RagEngine:
         generator: Generator | None = None,
         top_k: int = DEFAULT_TOP_K,
         min_score: float = DEFAULT_MIN_SCORE,
+        reranker: "Reranker | None" = None,
+        rerank_candidates: int = DEFAULT_RERANK_CANDIDATES,
     ) -> None:
         self._embedder = embedder
         self._index = index
         self._generator: Generator = generator or ExtractiveGenerator()
         self._top_k = top_k
         self._min_score = min_score
+        # Optional, and None is a first-class configuration rather than a
+        # degraded one: the single-stage path is what every measurement before
+        # Module 4 was taken against, and it has to stay runnable for the
+        # before/after comparison to mean anything.
+        self._reranker = reranker
+        self._rerank_candidates = max(rerank_candidates, top_k)
+
+    @property
+    def reranker(self) -> "Reranker | None":
+        """The second stage, or None when retrieval is vector-only."""
+        return self._reranker
 
     @property
     def documents_indexed(self) -> int:
@@ -612,7 +711,14 @@ class RagEngine:
         # Over-fetch, because the Arabic and English vectors of the same
         # article both compete for slots; without this, top_k=5 could return
         # the same article five times in two languages.
-        candidates = self._index.search(vector, self._top_k * CANDIDATE_MULTIPLIER)
+        #
+        # With a re-ranker attached the pool is deeper again. The entire value
+        # of a second stage is that it can promote an article the cosine
+        # ranked below the cut, and it can only promote what it is shown --
+        # re-ranking the same five articles the vector search already chose
+        # would cost a forward pass per pair and change nothing.
+        pool = self._top_k if self._reranker is None else self._rerank_candidates
+        candidates = self._index.search(vector, pool * CANDIDATE_MULTIPLIER)
 
         best: dict[int, RetrievedArticle] = {}
         for payload, score in candidates:
@@ -635,7 +741,53 @@ class RagEngine:
             )
 
         ranked = sorted(best.values(), key=lambda hit: hit.score, reverse=True)
-        return ranked[: self._top_k]
+        if self._reranker is None:
+            return ranked[: self._top_k]
+        return self._rerank(question, ranked[: self._rerank_candidates])
+
+    @log_latency("rag.rerank")
+    def _rerank(
+        self, question: str, candidates: list[RetrievedArticle]
+    ) -> list[RetrievedArticle]:
+        """Reorder ``candidates`` with the cross-encoder and keep the best.
+
+        The raw question is scored, not the normalized form. Normalization
+        strips the diacritics and unifies the hamza and alef variants that the
+        embedding model is sensitive to; a cross-encoder trained on natural
+        multilingual text is not, and feeding it stripped Arabic throws away
+        signal for no benefit.
+
+        A failing re-ranker degrades to the vector ordering rather than
+        failing the request. The first-stage result is a genuine answer -- it
+        is what this service returned for every request before Module 4 -- so
+        turning a recoverable second-stage fault into a 500 would trade a
+        slightly worse answer for no answer at all.
+        """
+        if not candidates:
+            return []
+        payloads = [rerank_payload(article) for article in candidates]
+        try:
+            order = self._reranker.rerank(question, payloads, top_k=self._top_k)
+        except Exception:
+            logger.exception(
+                "Re-ranking failed; falling back to the vector ordering",
+                extra={"n_candidates": len(candidates)},
+            )
+            return candidates[: self._top_k]
+
+        reranked = [
+            replace(candidates[position], rerank_score=float(score))
+            for position, score in order
+        ]
+        logger.info(
+            "Re-ranked candidates",
+            extra={
+                "n_candidates": len(candidates),
+                "n_returned": len(reranked),
+                "promoted": candidates[0].article_number != reranked[0].article_number,
+            },
+        )
+        return reranked
 
     @log_latency("rag.answer")
     def answer(self, question: str) -> Answer:

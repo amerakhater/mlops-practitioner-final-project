@@ -1,0 +1,3421 @@
+{
+  "schema_version": 1,
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "group_size": 128,
+  "outlier_factor": 10.0,
+  "calibration_passages": 16,
+  "calibration_source": "data\\processed\\chunks.json",
+  "max_seq_length": 512,
+  "modules_analysed": 196,
+  "overall": {
+    "act_outlier_ratio": 73.33932526106456,
+    "weight_channel_ratio": 4.428412290251985,
+    "err_int8_per_tensor": 0.03928526072306748,
+    "err_int8_per_channel": 0.009835891202282237,
+    "err_int4_group": 0.1058862894697457
+  },
+  "by_role": {
+    "attention_k": {
+      "modules": 28,
+      "act_outlier_ratio": 16.72119795975233,
+      "err_int8_per_tensor": 0.02142080930726869,
+      "err_int8_per_channel": 0.009410334884056024,
+      "err_int4_group": 0.10726161593837398
+    },
+    "attention_out": {
+      "modules": 28,
+      "act_outlier_ratio": 4.132016057605411,
+      "err_int8_per_tensor": 0.047680833909128396,
+      "err_int8_per_channel": 0.009861767325284225,
+      "err_int4_group": 0.10180276605699744
+    },
+    "attention_q": {
+      "modules": 28,
+      "act_outlier_ratio": 16.72119795975233,
+      "err_int8_per_tensor": 0.035825151284890513,
+      "err_int8_per_channel": 0.00948921118729881,
+      "err_int4_group": 0.10595686441021306
+    },
+    "attention_v": {
+      "modules": 28,
+      "act_outlier_ratio": 16.72119795975233,
+      "err_int8_per_tensor": 0.017192936735227704,
+      "err_int8_per_channel": 0.010196464701688715,
+      "err_int4_group": 0.11290916241705418
+    },
+    "mlp_down": {
+      "modules": 28,
+      "act_outlier_ratio": 429.5750132622789,
+      "err_int8_per_tensor": 0.06389580267880644,
+      "err_int8_per_channel": 0.012037301469328148,
+      "err_int4_group": 0.10597973503172398
+    },
+    "mlp_gate": {
+      "modules": 28,
+      "act_outlier_ratio": 14.752326814155305,
+      "err_int8_per_tensor": 0.04516552794458611,
+      "err_int8_per_channel": 0.009006942921717252,
+      "err_int4_group": 0.10378945379384927
+    },
+    "mlp_up": {
+      "modules": 28,
+      "act_outlier_ratio": 14.752326814155305,
+      "err_int8_per_tensor": 0.04381576320156455,
+      "err_int8_per_channel": 0.008849215926602483,
+      "err_int4_group": 0.10350442864000797
+    }
+  },
+  "modules": [
+    {
+      "name": "model.layers.0.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.094170093536377,
+      "act_max_absmax": 49.866676330566406,
+      "act_outlier_ratio": 45.57488513453738,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 9.350648880004883,
+      "err_int8_per_tensor": 0.0658487007021904,
+      "err_int8_per_channel": 0.011491477489471436,
+      "err_int4_group": 0.10800644755363464
+    },
+    {
+      "name": "model.layers.0.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.094170093536377,
+      "act_max_absmax": 49.866676330566406,
+      "act_outlier_ratio": 45.57488513453738,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.009049892425537,
+      "err_int8_per_tensor": 0.017643244937062263,
+      "err_int8_per_channel": 0.008653787896037102,
+      "err_int4_group": 0.1029583290219307
+    },
+    {
+      "name": "model.layers.0.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.094170093536377,
+      "act_max_absmax": 49.866676330566406,
+      "act_outlier_ratio": 45.57488513453738,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.103896141052246,
+      "err_int8_per_tensor": 0.02832268737256527,
+      "err_int8_per_channel": 0.009564507752656937,
+      "err_int4_group": 0.10685291886329651
+    },
+    {
+      "name": "model.layers.0.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 0.9998602271080017,
+      "act_max_absmax": 4.38178825378418,
+      "act_outlier_ratio": 4.382400794617139,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.147541046142578,
+      "err_int8_per_tensor": 0.027884801849722862,
+      "err_int8_per_channel": 0.010265549644827843,
+      "err_int4_group": 0.10138270258903503
+    },
+    {
+      "name": "model.layers.0.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 0.9976140856742859,
+      "act_max_absmax": 6.3776655197143555,
+      "act_outlier_ratio": 6.392918475488145,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.456621170043945,
+      "err_int8_per_tensor": 0.035217996686697006,
+      "err_int8_per_channel": 0.008838272653520107,
+      "err_int4_group": 0.10229746997356415
+    },
+    {
+      "name": "model.layers.0.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 0.9976140856742859,
+      "act_max_absmax": 6.3776655197143555,
+      "act_outlier_ratio": 6.392918475488145,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.329843044281006,
+      "err_int8_per_tensor": 0.027626212686300278,
+      "err_int8_per_channel": 0.008609579876065254,
+      "err_int4_group": 0.1024613156914711
+    },
+    {
+      "name": "model.layers.0.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.8420071601867676,
+      "act_max_absmax": 17.37925910949707,
+      "act_outlier_ratio": 20.6402747283552,
+      "act_outlier_channels": 58,
+      "act_channels": 8960,
+      "weight_channel_ratio": 4.995633125305176,
+      "err_int8_per_tensor": 0.047436174005270004,
+      "err_int8_per_channel": 0.010325253009796143,
+      "err_int4_group": 0.10279219597578049
+    },
+    {
+      "name": "model.layers.1.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 0.9777551889419556,
+      "act_max_absmax": 10.778695106506348,
+      "act_outlier_ratio": 11.023920126847033,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.7768595218658447,
+      "err_int8_per_tensor": 0.022429876029491425,
+      "err_int8_per_channel": 0.008633360266685486,
+      "err_int4_group": 0.10209445655345917
+    },
+    {
+      "name": "model.layers.1.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 0.9777551889419556,
+      "act_max_absmax": 10.778695106506348,
+      "act_outlier_ratio": 11.023920126847033,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.6666667461395264,
+      "err_int8_per_tensor": 0.019624100998044014,
+      "err_int8_per_channel": 0.008570939302444458,
+      "err_int4_group": 0.10125597566366196
+    },
+    {
+      "name": "model.layers.1.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 0.9777551889419556,
+      "act_max_absmax": 10.778695106506348,
+      "act_outlier_ratio": 11.023920126847033,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.5644171237945557,
+      "err_int8_per_tensor": 0.014031746424734592,
+      "err_int8_per_channel": 0.009272325783967972,
+      "err_int4_group": 0.10524587333202362
+    },
+    {
+      "name": "model.layers.1.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 0.6270322799682617,
+      "act_max_absmax": 2.9563121795654297,
+      "act_outlier_ratio": 4.71476871926764,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.065934181213379,
+      "err_int8_per_tensor": 0.03505099192261696,
+      "err_int8_per_channel": 0.009264427237212658,
+      "err_int4_group": 0.10124737024307251
+    },
+    {
+      "name": "model.layers.1.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.4108340740203857,
+      "act_max_absmax": 71.22265625,
+      "act_outlier_ratio": 20.881301964375275,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.7299578189849854,
+      "err_int8_per_tensor": 0.030443960800766945,
+      "err_int8_per_channel": 0.008383575826883316,
+      "err_int4_group": 0.10061371326446533
+    },
+    {
+      "name": "model.layers.1.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.4108340740203857,
+      "act_max_absmax": 71.22265625,
+      "act_outlier_ratio": 20.881301964375275,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 9.06403923034668,
+      "err_int8_per_tensor": 0.07088523358106613,
+      "err_int8_per_channel": 0.008558663539588451,
+      "err_int4_group": 0.10166560113430023
+    },
+    {
+      "name": "model.layers.1.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.7313939929008484,
+      "act_max_absmax": 5115.62890625,
+      "act_outlier_ratio": 6994.354555689523,
+      "act_outlier_channels": 377,
+      "act_channels": 8960,
+      "weight_channel_ratio": 4.7131781578063965,
+      "err_int8_per_tensor": 0.04853222519159317,
+      "err_int8_per_channel": 0.011639411561191082,
+      "err_int4_group": 0.10622759163379669
+    },
+    {
+      "name": "model.layers.2.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.6528589725494385,
+      "act_max_absmax": 17.202627182006836,
+      "act_outlier_ratio": 10.40780094836088,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.415929317474365,
+      "err_int8_per_tensor": 0.044190745800733566,
+      "err_int8_per_channel": 0.009394252672791481,
+      "err_int4_group": 0.10627488791942596
+    },
+    {
+      "name": "model.layers.2.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.6528589725494385,
+      "act_max_absmax": 17.202627182006836,
+      "act_outlier_ratio": 10.40780094836088,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.359375,
+      "err_int8_per_tensor": 0.01826193556189537,
+      "err_int8_per_channel": 0.008615688420832157,
+      "err_int4_group": 0.10224983096122742
+    },
+    {
+      "name": "model.layers.2.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.6528589725494385,
+      "act_max_absmax": 17.202627182006836,
+      "act_outlier_ratio": 10.40780094836088,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.56521737575531,
+      "err_int8_per_tensor": 0.013837705366313457,
+      "err_int8_per_channel": 0.008952360600233078,
+      "err_int4_group": 0.10444726049900055
+    },
+    {
+      "name": "model.layers.2.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 0.9732954502105713,
+      "act_max_absmax": 2.983351707458496,
+      "act_outlier_ratio": 3.065206671636091,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.5643563270568848,
+      "err_int8_per_tensor": 0.03151148557662964,
+      "err_int8_per_channel": 0.00974480714648962,
+      "err_int4_group": 0.10091692954301834
+    },
+    {
+      "name": "model.layers.2.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.880976915359497,
+      "act_max_absmax": 107.92813873291016,
+      "act_outlier_ratio": 37.462340693362535,
+      "act_outlier_channels": 7,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.206477642059326,
+      "err_int8_per_tensor": 0.026355043053627014,
+      "err_int8_per_channel": 0.008454632014036179,
+      "err_int4_group": 0.10073106735944748
+    },
+    {
+      "name": "model.layers.2.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.880976915359497,
+      "act_max_absmax": 107.92813873291016,
+      "act_outlier_ratio": 37.462340693362535,
+      "act_outlier_channels": 7,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.785340309143066,
+      "err_int8_per_tensor": 0.053727876394987106,
+      "err_int8_per_channel": 0.008616849780082703,
+      "err_int4_group": 0.10188647359609604
+    },
+    {
+      "name": "model.layers.2.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.8821482062339783,
+      "act_max_absmax": 2806.212646484375,
+      "act_outlier_ratio": 3181.112455541358,
+      "act_outlier_channels": 369,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.4666666984558105,
+      "err_int8_per_tensor": 0.054624877870082855,
+      "err_int8_per_channel": 0.011632408946752548,
+      "err_int4_group": 0.10593459010124207
+    },
+    {
+      "name": "model.layers.3.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.5839003324508667,
+      "act_max_absmax": 26.57052230834961,
+      "act_outlier_ratio": 16.77537516974657,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.779660940170288,
+      "err_int8_per_tensor": 0.023175416514277458,
+      "err_int8_per_channel": 0.009006123058497906,
+      "err_int4_group": 0.10346157848834991
+    },
+    {
+      "name": "model.layers.3.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5839003324508667,
+      "act_max_absmax": 26.57052230834961,
+      "act_outlier_ratio": 16.77537516974657,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.8201439380645752,
+      "err_int8_per_tensor": 0.015830550342798233,
+      "err_int8_per_channel": 0.008911838755011559,
+      "err_int4_group": 0.10392981022596359
+    },
+    {
+      "name": "model.layers.3.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5839003324508667,
+      "act_max_absmax": 26.57052230834961,
+      "act_outlier_ratio": 16.77537516974657,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.4460093975067139,
+      "err_int8_per_tensor": 0.013075650669634342,
+      "err_int8_per_channel": 0.009289649315178394,
+      "err_int4_group": 0.10577916353940964
+    },
+    {
+      "name": "model.layers.3.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 0.9555950164794922,
+      "act_max_absmax": 4.611403942108154,
+      "act_outlier_ratio": 4.825688563233648,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.650717735290527,
+      "err_int8_per_tensor": 0.041973698884248734,
+      "err_int8_per_channel": 0.009764445014297962,
+      "err_int4_group": 0.10152764618396759
+    },
+    {
+      "name": "model.layers.3.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.615037441253662,
+      "act_max_absmax": 60.962406158447266,
+      "act_outlier_ratio": 23.312249835023998,
+      "act_outlier_channels": 6,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.473684310913086,
+      "err_int8_per_tensor": 0.02964663691818714,
+      "err_int8_per_channel": 0.008689334616065025,
+      "err_int4_group": 0.10135647654533386
+    },
+    {
+      "name": "model.layers.3.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.615037441253662,
+      "act_max_absmax": 60.962406158447266,
+      "act_outlier_ratio": 23.312249835023998,
+      "act_outlier_channels": 6,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.326315879821777,
+      "err_int8_per_tensor": 0.059820130467414856,
+      "err_int8_per_channel": 0.008517601527273655,
+      "err_int4_group": 0.10157185792922974
+    },
+    {
+      "name": "model.layers.3.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.6655762195587158,
+      "act_max_absmax": 311.42132568359375,
+      "act_outlier_ratio": 186.97512730225154,
+      "act_outlier_channels": 59,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.1965813636779785,
+      "err_int8_per_tensor": 0.05289126932621002,
+      "err_int8_per_channel": 0.011279148980975151,
+      "err_int4_group": 0.10497983545064926
+    },
+    {
+      "name": "model.layers.4.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.837477207183838,
+      "act_max_absmax": 29.152938842773438,
+      "act_outlier_ratio": 15.865741751133848,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.4107143878936768,
+      "err_int8_per_tensor": 0.019605766981840134,
+      "err_int8_per_channel": 0.008872861973941326,
+      "err_int4_group": 0.10279537737369537
+    },
+    {
+      "name": "model.layers.4.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.837477207183838,
+      "act_max_absmax": 29.152938842773438,
+      "act_outlier_ratio": 15.865741751133848,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.633466124534607,
+      "err_int8_per_tensor": 0.013691745698451996,
+      "err_int8_per_channel": 0.008545047603547573,
+      "err_int4_group": 0.10189656168222427
+    },
+    {
+      "name": "model.layers.4.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.837477207183838,
+      "act_max_absmax": 29.152938842773438,
+      "act_outlier_ratio": 15.865741751133848,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.4666666984558105,
+      "err_int8_per_tensor": 0.012447692453861237,
+      "err_int8_per_channel": 0.008563504554331303,
+      "err_int4_group": 0.10270436108112335
+    },
+    {
+      "name": "model.layers.4.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.184348225593567,
+      "act_max_absmax": 4.514842510223389,
+      "act_outlier_ratio": 3.8120904077520428,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.217391490936279,
+      "err_int8_per_tensor": 0.04586239159107208,
+      "err_int8_per_channel": 0.009280030615627766,
+      "err_int4_group": 0.10106252133846283
+    },
+    {
+      "name": "model.layers.4.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.319746255874634,
+      "act_max_absmax": 37.797245025634766,
+      "act_outlier_ratio": 16.293698041290188,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.019608020782471,
+      "err_int8_per_tensor": 0.04322070628404617,
+      "err_int8_per_channel": 0.009029332548379898,
+      "err_int4_group": 0.1025189459323883
+    },
+    {
+      "name": "model.layers.4.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.319746255874634,
+      "act_max_absmax": 37.797245025634766,
+      "act_outlier_ratio": 16.293698041290188,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.395833492279053,
+      "err_int8_per_tensor": 0.03584262356162071,
+      "err_int8_per_channel": 0.008559430949389935,
+      "err_int4_group": 0.10200336575508118
+    },
+    {
+      "name": "model.layers.4.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.426635980606079,
+      "act_max_absmax": 168.67919921875,
+      "act_outlier_ratio": 118.23562668529492,
+      "act_outlier_channels": 38,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.991769313812256,
+      "err_int8_per_tensor": 0.062390320003032684,
+      "err_int8_per_channel": 0.011562301777303219,
+      "err_int4_group": 0.10519623011350632
+    },
+    {
+      "name": "model.layers.5.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.7080005407333374,
+      "act_max_absmax": 30.167724609375,
+      "act_outlier_ratio": 17.6625966385364,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.7272727489471436,
+      "err_int8_per_tensor": 0.023084498941898346,
+      "err_int8_per_channel": 0.009493127465248108,
+      "err_int4_group": 0.10806002467870712
+    },
+    {
+      "name": "model.layers.5.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7080005407333374,
+      "act_max_absmax": 30.167724609375,
+      "act_outlier_ratio": 17.6625966385364,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.1731600761413574,
+      "err_int8_per_tensor": 0.018380317836999893,
+      "err_int8_per_channel": 0.01018331479281187,
+      "err_int4_group": 0.11536604911088943
+    },
+    {
+      "name": "model.layers.5.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7080005407333374,
+      "act_max_absmax": 30.167724609375,
+      "act_outlier_ratio": 17.6625966385364,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.866108775138855,
+      "err_int8_per_tensor": 0.016400890424847603,
+      "err_int8_per_channel": 0.009304981678724289,
+      "err_int4_group": 0.10840781778097153
+    },
+    {
+      "name": "model.layers.5.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.1025582551956177,
+      "act_max_absmax": 5.635031223297119,
+      "act_outlier_ratio": 5.110869377416564,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.774193525314331,
+      "err_int8_per_tensor": 0.037840452045202255,
+      "err_int8_per_channel": 0.010435753501951694,
+      "err_int4_group": 0.10227666050195694
+    },
+    {
+      "name": "model.layers.5.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.165140390396118,
+      "act_max_absmax": 60.75775909423828,
+      "act_outlier_ratio": 19.19591285068857,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.174088954925537,
+      "err_int8_per_tensor": 0.02621912769973278,
+      "err_int8_per_channel": 0.008466606959700584,
+      "err_int4_group": 0.10099668800830841
+    },
+    {
+      "name": "model.layers.5.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.165140390396118,
+      "act_max_absmax": 60.75775909423828,
+      "act_outlier_ratio": 19.19591285068857,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.340206146240234,
+      "err_int8_per_tensor": 0.059591345489025116,
+      "err_int8_per_channel": 0.008707387372851372,
+      "err_int4_group": 0.10204388201236725
+    },
+    {
+      "name": "model.layers.5.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.8296178579330444,
+      "act_max_absmax": 211.853759765625,
+      "act_outlier_ratio": 255.36306594634922,
+      "act_outlier_channels": 198,
+      "act_channels": 8960,
+      "weight_channel_ratio": 8.167364120483398,
+      "err_int8_per_tensor": 0.08423203229904175,
+      "err_int8_per_channel": 0.011708834208548069,
+      "err_int4_group": 0.10512516647577286
+    },
+    {
+      "name": "model.layers.6.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.4762276411056519,
+      "act_max_absmax": 33.64188003540039,
+      "act_outlier_ratio": 22.789086925783067,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.074418544769287,
+      "err_int8_per_tensor": 0.03202734515070915,
+      "err_int8_per_channel": 0.009673870168626308,
+      "err_int4_group": 0.10907309502363205
+    },
+    {
+      "name": "model.layers.6.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.4762276411056519,
+      "act_max_absmax": 33.64188003540039,
+      "act_outlier_ratio": 22.789086925783067,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.0444445610046387,
+      "err_int8_per_tensor": 0.018387846648693085,
+      "err_int8_per_channel": 0.009830151684582233,
+      "err_int4_group": 0.11063829064369202
+    },
+    {
+      "name": "model.layers.6.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.4762276411056519,
+      "act_max_absmax": 33.64188003540039,
+      "act_outlier_ratio": 22.789086925783067,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.774647831916809,
+      "err_int8_per_tensor": 0.01582149975001812,
+      "err_int8_per_channel": 0.009092296473681927,
+      "err_int4_group": 0.10755999386310577
+    },
+    {
+      "name": "model.layers.6.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.0083262920379639,
+      "act_max_absmax": 4.823349475860596,
+      "act_outlier_ratio": 4.783520487313639,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.534653663635254,
+      "err_int8_per_tensor": 0.06112261861562729,
+      "err_int8_per_channel": 0.010126465000212193,
+      "err_int4_group": 0.10279467701911926
+    },
+    {
+      "name": "model.layers.6.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.9234098196029663,
+      "act_max_absmax": 24.398155212402344,
+      "act_outlier_ratio": 12.684844885235458,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.34080696105957,
+      "err_int8_per_tensor": 0.03535189479589462,
+      "err_int8_per_channel": 0.00888435821980238,
+      "err_int4_group": 0.10207518190145493
+    },
+    {
+      "name": "model.layers.6.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.9234098196029663,
+      "act_max_absmax": 24.398155212402344,
+      "act_outlier_ratio": 12.684844885235458,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.747572898864746,
+      "err_int8_per_tensor": 0.047345876693725586,
+      "err_int8_per_channel": 0.008723167702555656,
+      "err_int4_group": 0.10254707932472229
+    },
+    {
+      "name": "model.layers.6.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.0984164476394653,
+      "act_max_absmax": 19.79657745361328,
+      "act_outlier_ratio": 18.02283414105534,
+      "act_outlier_channels": 24,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.456692695617676,
+      "err_int8_per_tensor": 0.06679360568523407,
+      "err_int8_per_channel": 0.011900145560503006,
+      "err_int4_group": 0.10474105924367905
+    },
+    {
+      "name": "model.layers.7.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.4022680521011353,
+      "act_max_absmax": 30.278812408447266,
+      "act_outlier_ratio": 21.592742103107884,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.9065420627593994,
+      "err_int8_per_tensor": 0.031416960060596466,
+      "err_int8_per_channel": 0.008775993250310421,
+      "err_int4_group": 0.10289262980222702
+    },
+    {
+      "name": "model.layers.7.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.4022680521011353,
+      "act_max_absmax": 30.278812408447266,
+      "act_outlier_ratio": 21.592742103107884,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.237288236618042,
+      "err_int8_per_tensor": 0.01843121275305748,
+      "err_int8_per_channel": 0.008784315548837185,
+      "err_int4_group": 0.10287995636463165
+    },
+    {
+      "name": "model.layers.7.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.4022680521011353,
+      "act_max_absmax": 30.278812408447266,
+      "act_outlier_ratio": 21.592742103107884,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.612069010734558,
+      "err_int8_per_tensor": 0.014995738863945007,
+      "err_int8_per_channel": 0.009320291690528393,
+      "err_int4_group": 0.10550897568464279
+    },
+    {
+      "name": "model.layers.7.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.0067330598831177,
+      "act_max_absmax": 4.702125072479248,
+      "act_outlier_ratio": 4.670677123710597,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.81339693069458,
+      "err_int8_per_tensor": 0.061212215572595596,
+      "err_int8_per_channel": 0.009618975222110748,
+      "err_int4_group": 0.10210280865430832
+    },
+    {
+      "name": "model.layers.7.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.7819126844406128,
+      "act_max_absmax": 22.749053955078125,
+      "act_outlier_ratio": 12.7666490921353,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.036529541015625,
+      "err_int8_per_tensor": 0.03324688598513603,
+      "err_int8_per_channel": 0.008874504826962948,
+      "err_int4_group": 0.1025150790810585
+    },
+    {
+      "name": "model.layers.7.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.7819126844406128,
+      "act_max_absmax": 22.749053955078125,
+      "act_outlier_ratio": 12.7666490921353,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.032863616943359,
+      "err_int8_per_tensor": 0.04194802790880203,
+      "err_int8_per_channel": 0.00904241856187582,
+      "err_int4_group": 0.10407109558582306
+    },
+    {
+      "name": "model.layers.7.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.1222317218780518,
+      "act_max_absmax": 26.24655532836914,
+      "act_outlier_ratio": 23.38782162069488,
+      "act_outlier_channels": 19,
+      "act_channels": 8960,
+      "weight_channel_ratio": 7.527559280395508,
+      "err_int8_per_tensor": 0.07630147784948349,
+      "err_int8_per_channel": 0.012807746417820454,
+      "err_int4_group": 0.10740537941455841
+    },
+    {
+      "name": "model.layers.8.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.7102453708648682,
+      "act_max_absmax": 28.294937133789062,
+      "act_outlier_ratio": 16.544372881114924,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.171428680419922,
+      "err_int8_per_tensor": 0.04763837531208992,
+      "err_int8_per_channel": 0.009715753607451916,
+      "err_int4_group": 0.10765842348337173
+    },
+    {
+      "name": "model.layers.8.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7102453708648682,
+      "act_max_absmax": 28.294937133789062,
+      "act_outlier_ratio": 16.544372881114924,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.117647171020508,
+      "err_int8_per_tensor": 0.0190128143876791,
+      "err_int8_per_channel": 0.00943699385970831,
+      "err_int4_group": 0.10710885375738144
+    },
+    {
+      "name": "model.layers.8.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7102453708648682,
+      "act_max_absmax": 28.294937133789062,
+      "act_outlier_ratio": 16.544372881114924,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.5,
+      "err_int8_per_tensor": 0.012730039656162262,
+      "err_int8_per_channel": 0.008703258819878101,
+      "err_int4_group": 0.10433432459831238
+    },
+    {
+      "name": "model.layers.8.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.4507800340652466,
+      "act_max_absmax": 5.34910774230957,
+      "act_outlier_ratio": 3.687056353622938,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.476635456085205,
+      "err_int8_per_tensor": 0.032359808683395386,
+      "err_int8_per_channel": 0.009622547775506973,
+      "err_int4_group": 0.10289274901151657
+    },
+    {
+      "name": "model.layers.8.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.7907865047454834,
+      "act_max_absmax": 21.374937057495117,
+      "act_outlier_ratio": 11.93606105521386,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.314815044403076,
+      "err_int8_per_tensor": 0.03523695468902588,
+      "err_int8_per_channel": 0.008772913366556168,
+      "err_int4_group": 0.10205534845590591
+    },
+    {
+      "name": "model.layers.8.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.7907865047454834,
+      "act_max_absmax": 21.374937057495117,
+      "act_outlier_ratio": 11.93606105521386,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 9.120773315429688,
+      "err_int8_per_tensor": 0.0748034194111824,
+      "err_int8_per_channel": 0.008733677677810192,
+      "err_int4_group": 0.10282965004444122
+    },
+    {
+      "name": "model.layers.8.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.0705196857452393,
+      "act_max_absmax": 16.253873825073242,
+      "act_outlier_ratio": 15.183162011409584,
+      "act_outlier_channels": 18,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.0,
+      "err_int8_per_tensor": 0.06536209583282471,
+      "err_int8_per_channel": 0.012602031230926514,
+      "err_int4_group": 0.10547825694084167
+    },
+    {
+      "name": "model.layers.9.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.6520622968673706,
+      "act_max_absmax": 30.623882293701172,
+      "act_outlier_ratio": 18.536759994928744,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.7733333110809326,
+      "err_int8_per_tensor": 0.02281360886991024,
+      "err_int8_per_channel": 0.00902597140520811,
+      "err_int4_group": 0.10353897511959076
+    },
+    {
+      "name": "model.layers.9.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.6520622968673706,
+      "act_max_absmax": 30.623882293701172,
+      "act_outlier_ratio": 18.536759994928744,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.9607843160629272,
+      "err_int8_per_tensor": 0.01697518490254879,
+      "err_int8_per_channel": 0.009243111126124859,
+      "err_int4_group": 0.10650691390037537
+    },
+    {
+      "name": "model.layers.9.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.6520622968673706,
+      "act_max_absmax": 30.623882293701172,
+      "act_outlier_ratio": 18.536759994928744,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.4822335243225098,
+      "err_int8_per_tensor": 0.012473339214920998,
+      "err_int8_per_channel": 0.008640745654702187,
+      "err_int4_group": 0.10383149236440659
+    },
+    {
+      "name": "model.layers.9.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.1342946290969849,
+      "act_max_absmax": 4.098916530609131,
+      "act_outlier_ratio": 3.6136259711220617,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.294117450714111,
+      "err_int8_per_tensor": 0.06500019133090973,
+      "err_int8_per_channel": 0.009360517375171185,
+      "err_int4_group": 0.10130961984395981
+    },
+    {
+      "name": "model.layers.9.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.6939489841461182,
+      "act_max_absmax": 20.27491569519043,
+      "act_outlier_ratio": 11.969023792892182,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.409523963928223,
+      "err_int8_per_tensor": 0.044085096567869186,
+      "err_int8_per_channel": 0.008857281878590584,
+      "err_int4_group": 0.10237418115139008
+    },
+    {
+      "name": "model.layers.9.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.6939489841461182,
+      "act_max_absmax": 20.27491569519043,
+      "act_outlier_ratio": 11.969023792892182,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.473684310913086,
+      "err_int8_per_tensor": 0.04529667645692825,
+      "err_int8_per_channel": 0.008766485378146172,
+      "err_int4_group": 0.10295446962118149
+    },
+    {
+      "name": "model.layers.9.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.0633537769317627,
+      "act_max_absmax": 16.843351364135742,
+      "act_outlier_ratio": 15.839837812713775,
+      "act_outlier_channels": 14,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.650980472564697,
+      "err_int8_per_tensor": 0.06870166957378387,
+      "err_int8_per_channel": 0.011702672578394413,
+      "err_int4_group": 0.10559402406215668
+    },
+    {
+      "name": "model.layers.10.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.866963267326355,
+      "act_max_absmax": 26.082656860351562,
+      "act_outlier_ratio": 13.97063205089411,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.038095474243164,
+      "err_int8_per_tensor": 0.032437290996313095,
+      "err_int8_per_channel": 0.009029040113091469,
+      "err_int4_group": 0.10364679247140884
+    },
+    {
+      "name": "model.layers.10.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.866963267326355,
+      "act_max_absmax": 26.082656860351562,
+      "act_outlier_ratio": 13.97063205089411,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.6905829906463623,
+      "err_int8_per_tensor": 0.022531896829605103,
+      "err_int8_per_channel": 0.009576098062098026,
+      "err_int4_group": 0.10938187688589096
+    },
+    {
+      "name": "model.layers.10.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.866963267326355,
+      "act_max_absmax": 26.082656860351562,
+      "act_outlier_ratio": 13.97063205089411,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.5895196199417114,
+      "err_int8_per_tensor": 0.014582944102585316,
+      "err_int8_per_channel": 0.009523333050310612,
+      "err_int4_group": 0.10971111059188843
+    },
+    {
+      "name": "model.layers.10.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.1824058294296265,
+      "act_max_absmax": 8.682778358459473,
+      "act_outlier_ratio": 7.343314911300721,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.3684210777282715,
+      "err_int8_per_tensor": 0.050380777567625046,
+      "err_int8_per_channel": 0.009502492845058441,
+      "err_int4_group": 0.10136944055557251
+    },
+    {
+      "name": "model.layers.10.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5933767557144165,
+      "act_max_absmax": 19.454586029052734,
+      "act_outlier_ratio": 12.209658487411506,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.349282264709473,
+      "err_int8_per_tensor": 0.05902973189949989,
+      "err_int8_per_channel": 0.008936758153140545,
+      "err_int4_group": 0.10321952402591705
+    },
+    {
+      "name": "model.layers.10.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5933767557144165,
+      "act_max_absmax": 19.454586029052734,
+      "act_outlier_ratio": 12.209658487411506,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.038461685180664,
+      "err_int8_per_tensor": 0.04148954525589943,
+      "err_int8_per_channel": 0.008815656416118145,
+      "err_int4_group": 0.10346707701683044
+    },
+    {
+      "name": "model.layers.10.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.9149580001831055,
+      "act_max_absmax": 13.430717468261719,
+      "act_outlier_ratio": 14.67905353641796,
+      "act_outlier_channels": 8,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.4242424964904785,
+      "err_int8_per_tensor": 0.06976749002933502,
+      "err_int8_per_channel": 0.012022837996482849,
+      "err_int4_group": 0.1070251315832138
+    },
+    {
+      "name": "model.layers.11.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.7309919595718384,
+      "act_max_absmax": 30.944225311279297,
+      "act_outlier_ratio": 17.87658523782708,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.6135265827178955,
+      "err_int8_per_tensor": 0.02842896059155464,
+      "err_int8_per_channel": 0.009181711822748184,
+      "err_int4_group": 0.10449564456939697
+    },
+    {
+      "name": "model.layers.11.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7309919595718384,
+      "act_max_absmax": 30.944225311279297,
+      "act_outlier_ratio": 17.87658523782708,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.6666667461395264,
+      "err_int8_per_tensor": 0.03289816156029701,
+      "err_int8_per_channel": 0.009500356391072273,
+      "err_int4_group": 0.10603784769773483
+    },
+    {
+      "name": "model.layers.11.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7309919595718384,
+      "act_max_absmax": 30.944225311279297,
+      "act_outlier_ratio": 17.87658523782708,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.6915887594223022,
+      "err_int8_per_tensor": 0.015421362593770027,
+      "err_int8_per_channel": 0.00946162547916174,
+      "err_int4_group": 0.10762198269367218
+    },
+    {
+      "name": "model.layers.11.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.0465220212936401,
+      "act_max_absmax": 4.479771614074707,
+      "act_outlier_ratio": 4.280628140569001,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.247619152069092,
+      "err_int8_per_tensor": 0.056910570710897446,
+      "err_int8_per_channel": 0.009303058497607708,
+      "err_int4_group": 0.10120028257369995
+    },
+    {
+      "name": "model.layers.11.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5399690866470337,
+      "act_max_absmax": 20.929073333740234,
+      "act_outlier_ratio": 13.59058017152084,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.792452812194824,
+      "err_int8_per_tensor": 0.03810219094157219,
+      "err_int8_per_channel": 0.008980420418083668,
+      "err_int4_group": 0.10371417552232742
+    },
+    {
+      "name": "model.layers.11.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5399690866470337,
+      "act_max_absmax": 20.929073333740234,
+      "act_outlier_ratio": 13.59058017152084,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.038461685180664,
+      "err_int8_per_tensor": 0.041908763349056244,
+      "err_int8_per_channel": 0.008916948921978474,
+      "err_int4_group": 0.10400141775608063
+    },
+    {
+      "name": "model.layers.11.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.80426025390625,
+      "act_max_absmax": 23.551990509033203,
+      "act_outlier_ratio": 29.284041322000455,
+      "act_outlier_channels": 14,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.645669460296631,
+      "err_int8_per_tensor": 0.07068653404712677,
+      "err_int8_per_channel": 0.011610163375735283,
+      "err_int4_group": 0.10587239265441895
+    },
+    {
+      "name": "model.layers.12.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.9455945491790771,
+      "act_max_absmax": 25.910078048706055,
+      "act_outlier_ratio": 13.317306043871543,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.392157077789307,
+      "err_int8_per_tensor": 0.03402195870876312,
+      "err_int8_per_channel": 0.009143712930381298,
+      "err_int4_group": 0.10528326034545898
+    },
+    {
+      "name": "model.layers.12.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.9455945491790771,
+      "act_max_absmax": 25.910078048706055,
+      "act_outlier_ratio": 13.317306043871543,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.1569507122039795,
+      "err_int8_per_tensor": 0.025297382846474648,
+      "err_int8_per_channel": 0.009800299070775509,
+      "err_int4_group": 0.1120641753077507
+    },
+    {
+      "name": "model.layers.12.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.9455945491790771,
+      "act_max_absmax": 25.910078048706055,
+      "act_outlier_ratio": 13.317306043871543,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.393617033958435,
+      "err_int8_per_tensor": 0.01187449786812067,
+      "err_int8_per_channel": 0.008713590912520885,
+      "err_int4_group": 0.10427162796258926
+    },
+    {
+      "name": "model.layers.12.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.431559443473816,
+      "act_max_absmax": 5.138128280639648,
+      "act_outlier_ratio": 3.5891826246289074,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.6572771072387695,
+      "err_int8_per_tensor": 0.04410094395279884,
+      "err_int8_per_channel": 0.009842058643698692,
+      "err_int4_group": 0.10158173739910126
+    },
+    {
+      "name": "model.layers.12.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.512345314025879,
+      "act_max_absmax": 19.09670639038086,
+      "act_outlier_ratio": 12.627212987188242,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.430622100830078,
+      "err_int8_per_tensor": 0.05177094414830208,
+      "err_int8_per_channel": 0.009171086363494396,
+      "err_int4_group": 0.10490715503692627
+    },
+    {
+      "name": "model.layers.12.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.512345314025879,
+      "act_max_absmax": 19.09670639038086,
+      "act_outlier_ratio": 12.627212987188242,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.903846263885498,
+      "err_int8_per_tensor": 0.032616205513477325,
+      "err_int8_per_channel": 0.008973676711320877,
+      "err_int4_group": 0.10452169179916382
+    },
+    {
+      "name": "model.layers.12.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.9159818887710571,
+      "act_max_absmax": 12.33243465423584,
+      "act_outlier_ratio": 13.463622813308966,
+      "act_outlier_channels": 4,
+      "act_channels": 8960,
+      "weight_channel_ratio": 7.757575988769531,
+      "err_int8_per_tensor": 0.08575917035341263,
+      "err_int8_per_channel": 0.012705938890576363,
+      "err_int4_group": 0.10793281346559525
+    },
+    {
+      "name": "model.layers.13.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.5951992273330688,
+      "act_max_absmax": 29.682331085205078,
+      "act_outlier_ratio": 18.607287777357712,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.340611457824707,
+      "err_int8_per_tensor": 0.01998167484998703,
+      "err_int8_per_channel": 0.009039465337991714,
+      "err_int4_group": 0.10397343337535858
+    },
+    {
+      "name": "model.layers.13.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5951992273330688,
+      "act_max_absmax": 29.682331085205078,
+      "act_outlier_ratio": 18.607287777357712,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.032388687133789,
+      "err_int8_per_tensor": 0.016857845708727837,
+      "err_int8_per_channel": 0.008710312657058239,
+      "err_int4_group": 0.10363088548183441
+    },
+    {
+      "name": "model.layers.13.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5951992273330688,
+      "act_max_absmax": 29.682331085205078,
+      "act_outlier_ratio": 18.607287777357712,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.047619104385376,
+      "err_int8_per_tensor": 0.01877518557012081,
+      "err_int8_per_channel": 0.009772351011633873,
+      "err_int4_group": 0.10789495706558228
+    },
+    {
+      "name": "model.layers.13.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.1799379587173462,
+      "act_max_absmax": 6.0231146812438965,
+      "act_outlier_ratio": 5.104602862163477,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.971292018890381,
+      "err_int8_per_tensor": 0.05498995631933212,
+      "err_int8_per_channel": 0.00974193960428238,
+      "err_int4_group": 0.10126925259828568
+    },
+    {
+      "name": "model.layers.13.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.47776460647583,
+      "act_max_absmax": 17.261545181274414,
+      "act_outlier_ratio": 11.680848969877355,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.6570048332214355,
+      "err_int8_per_tensor": 0.03793025016784668,
+      "err_int8_per_channel": 0.008946536108851433,
+      "err_int4_group": 0.10384749621152878
+    },
+    {
+      "name": "model.layers.13.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.47776460647583,
+      "act_max_absmax": 17.261545181274414,
+      "act_outlier_ratio": 11.680848969877355,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.405797004699707,
+      "err_int8_per_tensor": 0.0367666557431221,
+      "err_int8_per_channel": 0.008967412635684013,
+      "err_int4_group": 0.10433322936296463
+    },
+    {
+      "name": "model.layers.13.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.9013069868087769,
+      "act_max_absmax": 14.266937255859375,
+      "act_outlier_ratio": 15.829165272948536,
+      "act_outlier_channels": 1,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.222222328186035,
+      "err_int8_per_tensor": 0.06569384038448334,
+      "err_int8_per_channel": 0.011824846267700195,
+      "err_int4_group": 0.10604238510131836
+    },
+    {
+      "name": "model.layers.14.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.0218141078948975,
+      "act_max_absmax": 37.9568977355957,
+      "act_outlier_ratio": 18.773683291346813,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.288659572601318,
+      "err_int8_per_tensor": 0.03327050432562828,
+      "err_int8_per_channel": 0.009697090834379196,
+      "err_int4_group": 0.11057145893573761
+    },
+    {
+      "name": "model.layers.14.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.0218141078948975,
+      "act_max_absmax": 37.9568977355957,
+      "act_outlier_ratio": 18.773683291346813,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.209580898284912,
+      "err_int8_per_tensor": 0.020678695291280746,
+      "err_int8_per_channel": 0.008563476614654064,
+      "err_int4_group": 0.10291372984647751
+    },
+    {
+      "name": "model.layers.14.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.0218141078948975,
+      "act_max_absmax": 37.9568977355957,
+      "act_outlier_ratio": 18.773683291346813,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.6040608882904053,
+      "err_int8_per_tensor": 0.01450480055063963,
+      "err_int8_per_channel": 0.009115499444305897,
+      "err_int4_group": 0.10747324675321579
+    },
+    {
+      "name": "model.layers.14.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.4568181037902832,
+      "act_max_absmax": 6.619171619415283,
+      "act_outlier_ratio": 4.5435813861688175,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 8.547008514404297,
+      "err_int8_per_tensor": 0.09026054292917252,
+      "err_int8_per_channel": 0.011280315928161144,
+      "err_int4_group": 0.10218968987464905
+    },
+    {
+      "name": "model.layers.14.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5923657417297363,
+      "act_max_absmax": 17.447660446166992,
+      "act_outlier_ratio": 10.957068460424269,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.213930130004883,
+      "err_int8_per_tensor": 0.04313376918435097,
+      "err_int8_per_channel": 0.009142369031906128,
+      "err_int4_group": 0.10485810786485672
+    },
+    {
+      "name": "model.layers.14.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5923657417297363,
+      "act_max_absmax": 17.447660446166992,
+      "act_outlier_ratio": 10.957068460424269,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.811881065368652,
+      "err_int8_per_tensor": 0.03971084579825401,
+      "err_int8_per_channel": 0.009055046364665031,
+      "err_int4_group": 0.10514090210199356
+    },
+    {
+      "name": "model.layers.14.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.9844035506248474,
+      "act_max_absmax": 11.694795608520508,
+      "act_outlier_ratio": 11.880082717191815,
+      "act_outlier_channels": 2,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.100719451904297,
+      "err_int8_per_tensor": 0.07125985622406006,
+      "err_int8_per_channel": 0.0138615807518363,
+      "err_int4_group": 0.10960502922534943
+    },
+    {
+      "name": "model.layers.15.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.7905651330947876,
+      "act_max_absmax": 28.353553771972656,
+      "act_outlier_ratio": 15.834974806510822,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 28.125560760498047,
+      "err_int8_per_tensor": 0.23296400904655457,
+      "err_int8_per_channel": 0.014987881295382977,
+      "err_int4_group": 0.1116866022348404
+    },
+    {
+      "name": "model.layers.15.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7905651330947876,
+      "act_max_absmax": 28.353553771972656,
+      "act_outlier_ratio": 15.834974806510822,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.537444829940796,
+      "err_int8_per_tensor": 0.022180844098329544,
+      "err_int8_per_channel": 0.009486065246164799,
+      "err_int4_group": 0.10804326832294464
+    },
+    {
+      "name": "model.layers.15.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7905651330947876,
+      "act_max_absmax": 28.353553771972656,
+      "act_outlier_ratio": 15.834974806510822,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.4585152864456177,
+      "err_int8_per_tensor": 0.013362306170165539,
+      "err_int8_per_channel": 0.009277873672544956,
+      "err_int4_group": 0.10775013267993927
+    },
+    {
+      "name": "model.layers.15.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.0983763933181763,
+      "act_max_absmax": 5.637975215911865,
+      "act_outlier_ratio": 5.133008365993408,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 8.39461898803711,
+      "err_int8_per_tensor": 0.07902048528194427,
+      "err_int8_per_channel": 0.009827900677919388,
+      "err_int4_group": 0.10207585245370865
+    },
+    {
+      "name": "model.layers.15.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.399632453918457,
+      "act_max_absmax": 17.177406311035156,
+      "act_outlier_ratio": 12.27279794987943,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.65217399597168,
+      "err_int8_per_tensor": 0.06273730844259262,
+      "err_int8_per_channel": 0.009185124188661575,
+      "err_int4_group": 0.1052294597029686
+    },
+    {
+      "name": "model.layers.15.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.399632453918457,
+      "act_max_absmax": 17.177406311035156,
+      "act_outlier_ratio": 12.27279794987943,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.5217390060424805,
+      "err_int8_per_tensor": 0.03785307705402374,
+      "err_int8_per_channel": 0.009004529565572739,
+      "err_int4_group": 0.10475268214941025
+    },
+    {
+      "name": "model.layers.15.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.7726172804832458,
+      "act_max_absmax": 17.977108001708984,
+      "act_outlier_ratio": 23.267804714987626,
+      "act_outlier_channels": 13,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.232558250427246,
+      "err_int8_per_tensor": 0.06784050911664963,
+      "err_int8_per_channel": 0.01283998042345047,
+      "err_int4_group": 0.10746125876903534
+    },
+    {
+      "name": "model.layers.16.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.1524341106414795,
+      "act_max_absmax": 31.118383407592773,
+      "act_outlier_ratio": 14.457298949940313,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.734693765640259,
+      "err_int8_per_tensor": 0.021376725286245346,
+      "err_int8_per_channel": 0.008810307830572128,
+      "err_int4_group": 0.10422678291797638
+    },
+    {
+      "name": "model.layers.16.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.1524341106414795,
+      "act_max_absmax": 31.118383407592773,
+      "act_outlier_ratio": 14.457298949940313,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.545454502105713,
+      "err_int8_per_tensor": 0.021335996687412262,
+      "err_int8_per_channel": 0.009593340568244457,
+      "err_int4_group": 0.1093715950846672
+    },
+    {
+      "name": "model.layers.16.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.1524341106414795,
+      "act_max_absmax": 31.118383407592773,
+      "act_outlier_ratio": 14.457298949940313,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.890547275543213,
+      "err_int8_per_tensor": 0.01646719127893448,
+      "err_int8_per_channel": 0.009026439860463142,
+      "err_int4_group": 0.10622234642505646
+    },
+    {
+      "name": "model.layers.16.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.3992230892181396,
+      "act_max_absmax": 4.423742771148682,
+      "act_outlier_ratio": 3.1615707353861553,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.567567348480225,
+      "err_int8_per_tensor": 0.0735694169998169,
+      "err_int8_per_channel": 0.010188114829361439,
+      "err_int4_group": 0.1026790663599968
+    },
+    {
+      "name": "model.layers.16.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.492594599723816,
+      "act_max_absmax": 18.30170440673828,
+      "act_outlier_ratio": 12.261671327314705,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.274509906768799,
+      "err_int8_per_tensor": 0.05183461308479309,
+      "err_int8_per_channel": 0.009245199151337147,
+      "err_int4_group": 0.1057179793715477
+    },
+    {
+      "name": "model.layers.16.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.492594599723816,
+      "act_max_absmax": 18.30170440673828,
+      "act_outlier_ratio": 12.261671327314705,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.415459156036377,
+      "err_int8_per_tensor": 0.053996168076992035,
+      "err_int8_per_channel": 0.00913146696984768,
+      "err_int4_group": 0.10540183633565903
+    },
+    {
+      "name": "model.layers.16.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 0.8725743889808655,
+      "act_max_absmax": 13.171097755432129,
+      "act_outlier_ratio": 15.094527093346715,
+      "act_outlier_channels": 7,
+      "act_channels": 8960,
+      "weight_channel_ratio": 6.584615230560303,
+      "err_int8_per_tensor": 0.0730762928724289,
+      "err_int8_per_channel": 0.012802938930690289,
+      "err_int4_group": 0.10747572034597397
+    },
+    {
+      "name": "model.layers.17.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.1899313926696777,
+      "act_max_absmax": 32.86992645263672,
+      "act_outlier_ratio": 15.009569049816673,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.400000095367432,
+      "err_int8_per_tensor": 0.033589527010917664,
+      "err_int8_per_channel": 0.009080948308110237,
+      "err_int4_group": 0.10411735624074936
+    },
+    {
+      "name": "model.layers.17.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.1899313926696777,
+      "act_max_absmax": 32.86992645263672,
+      "act_outlier_ratio": 15.009569049816673,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.2229299545288086,
+      "err_int8_per_tensor": 0.025465169921517372,
+      "err_int8_per_channel": 0.009158585220575333,
+      "err_int4_group": 0.1059274673461914
+    },
+    {
+      "name": "model.layers.17.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.1899313926696777,
+      "act_max_absmax": 32.86992645263672,
+      "act_outlier_ratio": 15.009569049816673,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.626086950302124,
+      "err_int8_per_tensor": 0.014107389375567436,
+      "err_int8_per_channel": 0.009034283459186554,
+      "err_int4_group": 0.10629431903362274
+    },
+    {
+      "name": "model.layers.17.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.2752867937088013,
+      "act_max_absmax": 5.689395427703857,
+      "act_outlier_ratio": 4.461267422959743,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.376068592071533,
+      "err_int8_per_tensor": 0.042186688631772995,
+      "err_int8_per_channel": 0.010337009094655514,
+      "err_int4_group": 0.10233956575393677
+    },
+    {
+      "name": "model.layers.17.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.483317255973816,
+      "act_max_absmax": 20.244823455810547,
+      "act_outlier_ratio": 13.648343518069284,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.305418491363525,
+      "err_int8_per_tensor": 0.0514935702085495,
+      "err_int8_per_channel": 0.009364614263176918,
+      "err_int4_group": 0.10622026771306992
+    },
+    {
+      "name": "model.layers.17.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.483317255973816,
+      "act_max_absmax": 20.244823455810547,
+      "act_outlier_ratio": 13.648343518069284,
+      "act_outlier_channels": 4,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.130841255187988,
+      "err_int8_per_tensor": 0.035189542919397354,
+      "err_int8_per_channel": 0.009125377982854843,
+      "err_int4_group": 0.10531632602214813
+    },
+    {
+      "name": "model.layers.17.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.0345150232315063,
+      "act_max_absmax": 22.538650512695312,
+      "act_outlier_ratio": 21.786682654729855,
+      "act_outlier_channels": 6,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.5,
+      "err_int8_per_tensor": 0.05864346772432327,
+      "err_int8_per_channel": 0.012010575272142887,
+      "err_int4_group": 0.10668206959962845
+    },
+    {
+      "name": "model.layers.18.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.9192475080490112,
+      "act_max_absmax": 32.914634704589844,
+      "act_outlier_ratio": 17.14976029227665,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.142857074737549,
+      "err_int8_per_tensor": 0.0326899029314518,
+      "err_int8_per_channel": 0.008990385569632053,
+      "err_int4_group": 0.10411865264177322
+    },
+    {
+      "name": "model.layers.18.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.9192475080490112,
+      "act_max_absmax": 32.914634704589844,
+      "act_outlier_ratio": 17.14976029227665,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.0792078971862793,
+      "err_int8_per_tensor": 0.01702089048922062,
+      "err_int8_per_channel": 0.008973391726613045,
+      "err_int4_group": 0.10456622391939163
+    },
+    {
+      "name": "model.layers.18.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.9192475080490112,
+      "act_max_absmax": 32.914634704589844,
+      "act_outlier_ratio": 17.14976029227665,
+      "act_outlier_channels": 5,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.814814805984497,
+      "err_int8_per_tensor": 0.015730109065771103,
+      "err_int8_per_channel": 0.009022901766002178,
+      "err_int4_group": 0.10455573350191116
+    },
+    {
+      "name": "model.layers.18.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.4871630668640137,
+      "act_max_absmax": 7.610721588134766,
+      "act_outlier_ratio": 5.117610676133534,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.91304349899292,
+      "err_int8_per_tensor": 0.05242147669196129,
+      "err_int8_per_channel": 0.009285002946853638,
+      "err_int4_group": 0.10195513069629669
+    },
+    {
+      "name": "model.layers.18.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5367324352264404,
+      "act_max_absmax": 19.648357391357422,
+      "act_outlier_ratio": 12.785802486470066,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.603864669799805,
+      "err_int8_per_tensor": 0.04662055894732475,
+      "err_int8_per_channel": 0.009555927477777004,
+      "err_int4_group": 0.10727646946907043
+    },
+    {
+      "name": "model.layers.18.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.5367324352264404,
+      "act_max_absmax": 19.648357391357422,
+      "act_outlier_ratio": 12.785802486470066,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.166666507720947,
+      "err_int8_per_tensor": 0.035711560398340225,
+      "err_int8_per_channel": 0.009242267347872257,
+      "err_int4_group": 0.10584710538387299
+    },
+    {
+      "name": "model.layers.18.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.2470214366912842,
+      "act_max_absmax": 17.12456703186035,
+      "act_outlier_ratio": 13.73237582611,
+      "act_outlier_channels": 5,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.6307692527771,
+      "err_int8_per_tensor": 0.06068086624145508,
+      "err_int8_per_channel": 0.012261690571904182,
+      "err_int4_group": 0.1076139360666275
+    },
+    {
+      "name": "model.layers.19.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.302443027496338,
+      "act_max_absmax": 36.05421447753906,
+      "act_outlier_ratio": 15.65911253697521,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.1229946613311768,
+      "err_int8_per_tensor": 0.023940779268741608,
+      "err_int8_per_channel": 0.008865302428603172,
+      "err_int4_group": 0.10406861454248428
+    },
+    {
+      "name": "model.layers.19.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.302443027496338,
+      "act_max_absmax": 36.05421447753906,
+      "act_outlier_ratio": 15.65911253697521,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.0,
+      "err_int8_per_tensor": 0.028849584981799126,
+      "err_int8_per_channel": 0.00929985847324133,
+      "err_int4_group": 0.10553202778100967
+    },
+    {
+      "name": "model.layers.19.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.302443027496338,
+      "act_max_absmax": 36.05421447753906,
+      "act_outlier_ratio": 15.65911253697521,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.016326427459717,
+      "err_int8_per_tensor": 0.01974881999194622,
+      "err_int8_per_channel": 0.011539899744093418,
+      "err_int4_group": 0.12361809611320496
+    },
+    {
+      "name": "model.layers.19.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.881076693534851,
+      "act_max_absmax": 5.557447910308838,
+      "act_outlier_ratio": 2.954397303102769,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.582159519195557,
+      "err_int8_per_tensor": 0.04175342619419098,
+      "err_int8_per_channel": 0.009807931259274483,
+      "err_int4_group": 0.10203482955694199
+    },
+    {
+      "name": "model.layers.19.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.672734022140503,
+      "act_max_absmax": 19.10529327392578,
+      "act_outlier_ratio": 11.421596632247498,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.526569843292236,
+      "err_int8_per_tensor": 0.046152591705322266,
+      "err_int8_per_channel": 0.009559105150401592,
+      "err_int4_group": 0.10732140392065048
+    },
+    {
+      "name": "model.layers.19.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.672734022140503,
+      "act_max_absmax": 19.10529327392578,
+      "act_outlier_ratio": 11.421596632247498,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.201793670654297,
+      "err_int8_per_tensor": 0.04461681470274925,
+      "err_int8_per_channel": 0.009418205358088017,
+      "err_int4_group": 0.1064733937382698
+    },
+    {
+      "name": "model.layers.19.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.557018518447876,
+      "act_max_absmax": 18.157732009887695,
+      "act_outlier_ratio": 11.661860019486697,
+      "act_outlier_channels": 8,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.519379615783691,
+      "err_int8_per_tensor": 0.05747676640748978,
+      "err_int8_per_channel": 0.0134610366076231,
+      "err_int4_group": 0.11144755780696869
+    },
+    {
+      "name": "model.layers.20.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.4248251914978027,
+      "act_max_absmax": 28.04787826538086,
+      "act_outlier_ratio": 11.56696918347991,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.8411214351654053,
+      "err_int8_per_tensor": 0.024141844362020493,
+      "err_int8_per_channel": 0.009388791397213936,
+      "err_int4_group": 0.10933320969343185
+    },
+    {
+      "name": "model.layers.20.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.4248251914978027,
+      "act_max_absmax": 28.04787826538086,
+      "act_outlier_ratio": 11.56696918347991,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.8685715198516846,
+      "err_int8_per_tensor": 0.02296013943850994,
+      "err_int8_per_channel": 0.009695676155388355,
+      "err_int4_group": 0.1065814346075058
+    },
+    {
+      "name": "model.layers.20.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.4248251914978027,
+      "act_max_absmax": 28.04787826538086,
+      "act_outlier_ratio": 11.56696918347991,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.7317073345184326,
+      "err_int8_per_tensor": 0.01895199529826641,
+      "err_int8_per_channel": 0.011328620836138725,
+      "err_int4_group": 0.12026872485876083
+    },
+    {
+      "name": "model.layers.20.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.1869492530822754,
+      "act_max_absmax": 5.628993034362793,
+      "act_outlier_ratio": 2.573901989920122,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.056277275085449,
+      "err_int8_per_tensor": 0.046728137880563736,
+      "err_int8_per_channel": 0.010217537172138691,
+      "err_int4_group": 0.10172805935144424
+    },
+    {
+      "name": "model.layers.20.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.7724645137786865,
+      "act_max_absmax": 23.96698570251465,
+      "act_outlier_ratio": 13.521842336589208,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.658536434173584,
+      "err_int8_per_tensor": 0.04607946425676346,
+      "err_int8_per_channel": 0.009322475641965866,
+      "err_int4_group": 0.10581675171852112
+    },
+    {
+      "name": "model.layers.20.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 1.7724645137786865,
+      "act_max_absmax": 23.96698570251465,
+      "act_outlier_ratio": 13.521842336589208,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.689497709274292,
+      "err_int8_per_tensor": 0.030840154737234116,
+      "err_int8_per_channel": 0.008909470401704311,
+      "err_int4_group": 0.10384953022003174
+    },
+    {
+      "name": "model.layers.20.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.4287468194961548,
+      "act_max_absmax": 29.52228355407715,
+      "act_outlier_ratio": 20.66306160841578,
+      "act_outlier_channels": 30,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.4588236808776855,
+      "err_int8_per_tensor": 0.055565349757671356,
+      "err_int8_per_channel": 0.011770909652113914,
+      "err_int4_group": 0.10539239645004272
+    },
+    {
+      "name": "model.layers.21.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.3331797122955322,
+      "act_max_absmax": 28.316064834594727,
+      "act_outlier_ratio": 12.136255379460488,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.3707315921783447,
+      "err_int8_per_tensor": 0.02025320939719677,
+      "err_int8_per_channel": 0.009131521917879581,
+      "err_int4_group": 0.10603202879428864
+    },
+    {
+      "name": "model.layers.21.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.3331797122955322,
+      "act_max_absmax": 28.316064834594727,
+      "act_outlier_ratio": 12.136255379460488,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.5443787574768066,
+      "err_int8_per_tensor": 0.020954545587301254,
+      "err_int8_per_channel": 0.009266682900488377,
+      "err_int4_group": 0.10562226176261902
+    },
+    {
+      "name": "model.layers.21.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.3331797122955322,
+      "act_max_absmax": 28.316064834594727,
+      "act_outlier_ratio": 12.136255379460488,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.91304349899292,
+      "err_int8_per_tensor": 0.017641233280301094,
+      "err_int8_per_channel": 0.009475876577198505,
+      "err_int4_group": 0.10826169699430466
+    },
+    {
+      "name": "model.layers.21.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.7504229545593262,
+      "act_max_absmax": 6.292614459991455,
+      "act_outlier_ratio": 3.5949108434627663,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.0714285373687744,
+      "err_int8_per_tensor": 0.027091050520539284,
+      "err_int8_per_channel": 0.009484200738370419,
+      "err_int4_group": 0.10287704318761826
+    },
+    {
+      "name": "model.layers.21.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.014356851577759,
+      "act_max_absmax": 25.88866424560547,
+      "act_outlier_ratio": 12.852074460058056,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.961538314819336,
+      "err_int8_per_tensor": 0.06532921642065048,
+      "err_int8_per_channel": 0.009638357907533646,
+      "err_int4_group": 0.10773279517889023
+    },
+    {
+      "name": "model.layers.21.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.014356851577759,
+      "act_max_absmax": 25.88866424560547,
+      "act_outlier_ratio": 12.852074460058056,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.475555419921875,
+      "err_int8_per_tensor": 0.0465848483145237,
+      "err_int8_per_channel": 0.009055646136403084,
+      "err_int4_group": 0.1045476421713829
+    },
+    {
+      "name": "model.layers.21.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 1.663977026939392,
+      "act_max_absmax": 59.74419403076172,
+      "act_outlier_ratio": 35.90445845316217,
+      "act_outlier_channels": 83,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.169230937957764,
+      "err_int8_per_tensor": 0.053313206881284714,
+      "err_int8_per_channel": 0.0121497493237257,
+      "err_int4_group": 0.10643430054187775
+    },
+    {
+      "name": "model.layers.22.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.8875054121017456,
+      "act_max_absmax": 25.022768020629883,
+      "act_outlier_ratio": 13.257057627594785,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.5302326679229736,
+      "err_int8_per_tensor": 0.020714884623885155,
+      "err_int8_per_channel": 0.00894811749458313,
+      "err_int4_group": 0.10534742474555969
+    },
+    {
+      "name": "model.layers.22.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.8875054121017456,
+      "act_max_absmax": 25.022768020629883,
+      "act_outlier_ratio": 13.257057627594785,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.4205129146575928,
+      "err_int8_per_tensor": 0.01944245770573616,
+      "err_int8_per_channel": 0.009261317551136017,
+      "err_int4_group": 0.10710912942886353
+    },
+    {
+      "name": "model.layers.22.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.8875054121017456,
+      "act_max_absmax": 25.022768020629883,
+      "act_outlier_ratio": 13.257057627594785,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.7865169048309326,
+      "err_int8_per_tensor": 0.022477036342024803,
+      "err_int8_per_channel": 0.01319457869976759,
+      "err_int4_group": 0.13138751685619354
+    },
+    {
+      "name": "model.layers.22.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.3730356693267822,
+      "act_max_absmax": 6.905960559844971,
+      "act_outlier_ratio": 2.910179838048602,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.68464732170105,
+      "err_int8_per_tensor": 0.03510378673672676,
+      "err_int8_per_channel": 0.010339162312448025,
+      "err_int4_group": 0.10226341336965561
+    },
+    {
+      "name": "model.layers.22.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.1735410690307617,
+      "act_max_absmax": 29.731117248535156,
+      "act_outlier_ratio": 13.678654464897244,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.934579372406006,
+      "err_int8_per_tensor": 0.04080800712108612,
+      "err_int8_per_channel": 0.009536429308354855,
+      "err_int4_group": 0.10709045082330704
+    },
+    {
+      "name": "model.layers.22.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.1735410690307617,
+      "act_max_absmax": 29.731117248535156,
+      "act_outlier_ratio": 13.678654464897244,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.767857074737549,
+      "err_int8_per_tensor": 0.03188871592283249,
+      "err_int8_per_channel": 0.0091515788808465,
+      "err_int4_group": 0.10500223934650421
+    },
+    {
+      "name": "model.layers.22.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 2.190889358520508,
+      "act_max_absmax": 61.22502517700195,
+      "act_outlier_ratio": 27.9452839272298,
+      "act_outlier_channels": 83,
+      "act_channels": 8960,
+      "weight_channel_ratio": 4.496124267578125,
+      "err_int8_per_tensor": 0.04599476233124733,
+      "err_int8_per_channel": 0.011892090551555157,
+      "err_int4_group": 0.10593367367982864
+    },
+    {
+      "name": "model.layers.23.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.9811818599700928,
+      "act_max_absmax": 32.657936096191406,
+      "act_outlier_ratio": 16.484067796120645,
+      "act_outlier_channels": 10,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.6794259548187256,
+      "err_int8_per_tensor": 0.022096123546361923,
+      "err_int8_per_channel": 0.00918420311063528,
+      "err_int4_group": 0.10641772300004959
+    },
+    {
+      "name": "model.layers.23.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.9811818599700928,
+      "act_max_absmax": 32.657936096191406,
+      "act_outlier_ratio": 16.484067796120645,
+      "act_outlier_channels": 10,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.711656332015991,
+      "err_int8_per_tensor": 0.021634966135025024,
+      "err_int8_per_channel": 0.009524105116724968,
+      "err_int4_group": 0.10857667028903961
+    },
+    {
+      "name": "model.layers.23.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.9811818599700928,
+      "act_max_absmax": 32.657936096191406,
+      "act_outlier_ratio": 16.484067796120645,
+      "act_outlier_channels": 10,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.7212121486663818,
+      "err_int8_per_tensor": 0.02002169005572796,
+      "err_int8_per_channel": 0.012812701985239983,
+      "err_int4_group": 0.1352958232164383
+    },
+    {
+      "name": "model.layers.23.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.484412670135498,
+      "act_max_absmax": 7.299112319946289,
+      "act_outlier_ratio": 2.937962926886941,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.1244635581970215,
+      "err_int8_per_tensor": 0.02858150750398636,
+      "err_int8_per_channel": 0.00951082818210125,
+      "err_int4_group": 0.10170275717973709
+    },
+    {
+      "name": "model.layers.23.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.3839218616485596,
+      "act_max_absmax": 30.045969009399414,
+      "act_outlier_ratio": 12.603588017193504,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.579439163208008,
+      "err_int8_per_tensor": 0.05440809205174446,
+      "err_int8_per_channel": 0.009096712805330753,
+      "err_int4_group": 0.1045791357755661
+    },
+    {
+      "name": "model.layers.23.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.3839218616485596,
+      "act_max_absmax": 30.045969009399414,
+      "act_outlier_ratio": 12.603588017193504,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.5377776622772217,
+      "err_int8_per_tensor": 0.02966117300093174,
+      "err_int8_per_channel": 0.008850081823766232,
+      "err_int4_group": 0.10354571044445038
+    },
+    {
+      "name": "model.layers.23.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 2.7304112911224365,
+      "act_max_absmax": 76.88248443603516,
+      "act_outlier_ratio": 28.15784006094912,
+      "act_outlier_channels": 63,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.129770755767822,
+      "err_int8_per_tensor": 0.05193733423948288,
+      "err_int8_per_channel": 0.0120167788118124,
+      "err_int4_group": 0.10383564233779907
+    },
+    {
+      "name": "model.layers.24.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.128145217895508,
+      "act_max_absmax": 23.712566375732422,
+      "act_outlier_ratio": 11.14236292539352,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.3362832069396973,
+      "err_int8_per_tensor": 0.02123253419995308,
+      "err_int8_per_channel": 0.00941663607954979,
+      "err_int4_group": 0.10722055286169052
+    },
+    {
+      "name": "model.layers.24.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.128145217895508,
+      "act_max_absmax": 23.712566375732422,
+      "act_outlier_ratio": 11.14236292539352,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.309999942779541,
+      "err_int8_per_tensor": 0.021303992718458176,
+      "err_int8_per_channel": 0.009710741229355335,
+      "err_int4_group": 0.10922956466674805
+    },
+    {
+      "name": "model.layers.24.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 2.128145217895508,
+      "act_max_absmax": 23.712566375732422,
+      "act_outlier_ratio": 11.14236292539352,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.2679426670074463,
+      "err_int8_per_tensor": 0.028024863451719284,
+      "err_int8_per_channel": 0.014008508995175362,
+      "err_int4_group": 0.13981398940086365
+    },
+    {
+      "name": "model.layers.24.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.436040163040161,
+      "act_max_absmax": 8.852824211120605,
+      "act_outlier_ratio": 3.634104373744127,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.0819671154022217,
+      "err_int8_per_tensor": 0.026854488998651505,
+      "err_int8_per_channel": 0.00946041475981474,
+      "err_int4_group": 0.10138631612062454
+    },
+    {
+      "name": "model.layers.24.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.7702512741088867,
+      "act_max_absmax": 32.127227783203125,
+      "act_outlier_ratio": 11.597225162738194,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.144927501678467,
+      "err_int8_per_tensor": 0.04943215474486351,
+      "err_int8_per_channel": 0.00874971505254507,
+      "err_int4_group": 0.10284773260354996
+    },
+    {
+      "name": "model.layers.24.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.7702512741088867,
+      "act_max_absmax": 32.127227783203125,
+      "act_outlier_ratio": 11.597225162738194,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.522522449493408,
+      "err_int8_per_tensor": 0.03714275732636452,
+      "err_int8_per_channel": 0.008535760454833508,
+      "err_int4_group": 0.10191763192415237
+    },
+    {
+      "name": "model.layers.24.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 3.569032669067383,
+      "act_max_absmax": 75.83143615722656,
+      "act_outlier_ratio": 21.24705576792659,
+      "act_outlier_channels": 26,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.384615421295166,
+      "err_int8_per_tensor": 0.05313712731003761,
+      "err_int8_per_channel": 0.010915919207036495,
+      "err_int4_group": 0.10207753628492355
+    },
+    {
+      "name": "model.layers.25.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.7848927974700928,
+      "act_max_absmax": 23.777502059936523,
+      "act_outlier_ratio": 13.321529502297706,
+      "act_outlier_channels": 7,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.405660390853882,
+      "err_int8_per_tensor": 0.01997045986354351,
+      "err_int8_per_channel": 0.00924549251794815,
+      "err_int4_group": 0.10592959076166153
+    },
+    {
+      "name": "model.layers.25.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7848927974700928,
+      "act_max_absmax": 23.777502059936523,
+      "act_outlier_ratio": 13.321529502297706,
+      "act_outlier_channels": 7,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.2911391258239746,
+      "err_int8_per_tensor": 0.028531020507216454,
+      "err_int8_per_channel": 0.010266619734466076,
+      "err_int4_group": 0.11078646779060364
+    },
+    {
+      "name": "model.layers.25.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.7848927974700928,
+      "act_max_absmax": 23.777502059936523,
+      "act_outlier_ratio": 13.321529502297706,
+      "act_outlier_channels": 7,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.8028168678283691,
+      "err_int8_per_tensor": 0.027261141687631607,
+      "err_int8_per_channel": 0.01587255299091339,
+      "err_int4_group": 0.13824445009231567
+    },
+    {
+      "name": "model.layers.25.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.813539505004883,
+      "act_max_absmax": 10.758061408996582,
+      "act_outlier_ratio": 3.823675263794781,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.91566276550293,
+      "err_int8_per_tensor": 0.04497804865241051,
+      "err_int8_per_channel": 0.011662089265882969,
+      "err_int4_group": 0.10210803151130676
+    },
+    {
+      "name": "model.layers.25.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.881251811981201,
+      "act_max_absmax": 37.449092864990234,
+      "act_outlier_ratio": 12.997507787852655,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 6.376237392425537,
+      "err_int8_per_tensor": 0.051052194088697433,
+      "err_int8_per_channel": 0.008791211992502213,
+      "err_int4_group": 0.10254764556884766
+    },
+    {
+      "name": "model.layers.25.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 2.881251811981201,
+      "act_max_absmax": 37.449092864990234,
+      "act_outlier_ratio": 12.997507787852655,
+      "act_outlier_channels": 2,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.048888683319092,
+      "err_int8_per_tensor": 0.04143723100423813,
+      "err_int8_per_channel": 0.008568506687879562,
+      "err_int4_group": 0.10201290994882584
+    },
+    {
+      "name": "model.layers.25.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 4.474194526672363,
+      "act_max_absmax": 92.9449691772461,
+      "act_outlier_ratio": 20.77356463228544,
+      "act_outlier_channels": 9,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.774435997009277,
+      "err_int8_per_tensor": 0.05722866952419281,
+      "err_int8_per_channel": 0.011289830319583416,
+      "err_int4_group": 0.10198399424552917
+    },
+    {
+      "name": "model.layers.26.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.5032297372817993,
+      "act_max_absmax": 23.880558013916016,
+      "act_outlier_ratio": 15.8861665796326,
+      "act_outlier_channels": 23,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.8708133697509766,
+      "err_int8_per_tensor": 0.02467540092766285,
+      "err_int8_per_channel": 0.009684060700237751,
+      "err_int4_group": 0.10777226090431213
+    },
+    {
+      "name": "model.layers.26.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5032297372817993,
+      "act_max_absmax": 23.880558013916016,
+      "act_outlier_ratio": 15.8861665796326,
+      "act_outlier_channels": 23,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.8481013774871826,
+      "err_int8_per_tensor": 0.023375006392598152,
+      "err_int8_per_channel": 0.010706333443522453,
+      "err_int4_group": 0.11596925556659698
+    },
+    {
+      "name": "model.layers.26.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5032297372817993,
+      "act_max_absmax": 23.880558013916016,
+      "act_outlier_ratio": 15.8861665796326,
+      "act_outlier_channels": 23,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.4677419662475586,
+      "err_int8_per_tensor": 0.016886727884411812,
+      "err_int8_per_channel": 0.011624936945736408,
+      "err_int4_group": 0.12190087139606476
+    },
+    {
+      "name": "model.layers.26.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 2.8353023529052734,
+      "act_max_absmax": 11.441238403320312,
+      "act_outlier_ratio": 4.0352798323595795,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.015686511993408,
+      "err_int8_per_tensor": 0.03358802944421768,
+      "err_int8_per_channel": 0.008543952368199825,
+      "err_int4_group": 0.10050902515649796
+    },
+    {
+      "name": "model.layers.26.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.0514869689941406,
+      "act_max_absmax": 88.62877655029297,
+      "act_outlier_ratio": 29.04445519539859,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 10.291457176208496,
+      "err_int8_per_tensor": 0.08259924501180649,
+      "err_int8_per_channel": 0.008885068818926811,
+      "err_int4_group": 0.10261222720146179
+    },
+    {
+      "name": "model.layers.26.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.0514869689941406,
+      "act_max_absmax": 88.62877655029297,
+      "act_outlier_ratio": 29.04445519539859,
+      "act_outlier_channels": 3,
+      "act_channels": 1536,
+      "weight_channel_ratio": 7.008849620819092,
+      "err_int8_per_tensor": 0.057259462773799896,
+      "err_int8_per_channel": 0.00852295383810997,
+      "err_int4_group": 0.10154882818460464
+    },
+    {
+      "name": "model.layers.26.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 5.787751197814941,
+      "act_max_absmax": 4892.123046875,
+      "act_outlier_ratio": 845.2545521863364,
+      "act_outlier_channels": 13,
+      "act_channels": 8960,
+      "weight_channel_ratio": 5.692307472229004,
+      "err_int8_per_tensor": 0.055728621780872345,
+      "err_int8_per_channel": 0.011104883626103401,
+      "err_int4_group": 0.10235601663589478
+    },
+    {
+      "name": "model.layers.27.self_attn.q_proj",
+      "role": "attention_q",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 1.5915223360061646,
+      "act_max_absmax": 27.007564544677734,
+      "act_outlier_ratio": 16.969642168171948,
+      "act_outlier_channels": 24,
+      "act_channels": 1536,
+      "weight_channel_ratio": 2.901960849761963,
+      "err_int8_per_tensor": 0.025087151676416397,
+      "err_int8_per_channel": 0.0097904521971941,
+      "err_int4_group": 0.10869491845369339
+    },
+    {
+      "name": "model.layers.27.self_attn.k_proj",
+      "role": "attention_k",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5915223360061646,
+      "act_max_absmax": 27.007564544677734,
+      "act_outlier_ratio": 16.969642168171948,
+      "act_outlier_channels": 24,
+      "act_channels": 1536,
+      "weight_channel_ratio": 3.9136691093444824,
+      "err_int8_per_tensor": 0.0322251096367836,
+      "err_int8_per_channel": 0.011620927602052689,
+      "err_int4_group": 0.11719079315662384
+    },
+    {
+      "name": "model.layers.27.self_attn.v_proj",
+      "role": "attention_v",
+      "shape": [
+        256,
+        1536
+      ],
+      "act_median_absmax": 1.5915223360061646,
+      "act_max_absmax": 27.007564544677734,
+      "act_outlier_ratio": 16.969642168171948,
+      "act_outlier_channels": 24,
+      "act_channels": 1536,
+      "weight_channel_ratio": 1.8793103694915771,
+      "err_int8_per_tensor": 0.021425943821668625,
+      "err_int8_per_channel": 0.011991513893008232,
+      "err_int4_group": 0.12619774043560028
+    },
+    {
+      "name": "model.layers.27.self_attn.o_proj",
+      "role": "attention_out",
+      "shape": [
+        1536,
+        1536
+      ],
+      "act_median_absmax": 5.114577770233154,
+      "act_max_absmax": 19.59581756591797,
+      "act_outlier_ratio": 3.8313656466357084,
+      "act_outlier_channels": 0,
+      "act_channels": 1536,
+      "weight_channel_ratio": 8.912281036376953,
+      "err_int8_per_tensor": 0.06672535836696625,
+      "err_int8_per_channel": 0.010311957448720932,
+      "err_int4_group": 0.1016942709684372
+    },
+    {
+      "name": "model.layers.27.mlp.gate_proj",
+      "role": "mlp_gate",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.8375704288482666,
+      "act_max_absmax": 39.9844970703125,
+      "act_outlier_ratio": 10.419221695512352,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 5.764705657958984,
+      "err_int8_per_tensor": 0.047096576541662216,
+      "err_int8_per_channel": 0.008836477063596249,
+      "err_int4_group": 0.10303177684545517
+    },
+    {
+      "name": "model.layers.27.mlp.up_proj",
+      "role": "mlp_up",
+      "shape": [
+        8960,
+        1536
+      ],
+      "act_median_absmax": 3.8375704288482666,
+      "act_max_absmax": 39.9844970703125,
+      "act_outlier_ratio": 10.419221695512352,
+      "act_outlier_channels": 1,
+      "act_channels": 1536,
+      "weight_channel_ratio": 4.244131565093994,
+      "err_int8_per_tensor": 0.03528042510151863,
+      "err_int8_per_channel": 0.008698197081685066,
+      "err_int4_group": 0.10240905731916428
+    },
+    {
+      "name": "model.layers.27.mlp.down_proj",
+      "role": "mlp_down",
+      "shape": [
+        1536,
+        8960
+      ],
+      "act_median_absmax": 9.925873756408691,
+      "act_max_absmax": 281.5035095214844,
+      "act_outlier_ratio": 28.36057725796988,
+      "act_outlier_channels": 12,
+      "act_channels": 8960,
+      "weight_channel_ratio": 11.149321556091309,
+      "err_int8_per_tensor": 0.10802686214447021,
+      "err_int8_per_channel": 0.013342736288905144,
+      "err_int4_group": 0.10878639668226242
+    }
+  ],
+  "hardware": {
+    "platform": "Windows-10-10.0.19045-SP0",
+    "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+    "python_version": "3.12.1",
+    "logical_cores": 16,
+    "ram_total_gib": 31.6715087890625,
+    "torch_version": "2.14.1+cpu",
+    "torch_cuda_available": false,
+    "torch_cuda_build": null,
+    "torch_num_threads": 8,
+    "gpus": [
+      {
+        "name": "NVIDIA RTX A2000 Laptop GPU",
+        "memory_total_mib": 4096,
+        "driver_version": "591.66",
+        "compute_capability": "8.6"
+      }
+    ]
+  }
+}

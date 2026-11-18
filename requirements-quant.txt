@@ -1,0 +1,66 @@
+# The offline 4-bit quantization toolchain (Module 4).
+#
+# NOT part of the project's dependency groups and deliberately not in
+# uv.lock. GPTQModel is a build-from-source package on Windows whose install
+# needs torch already present (its setup.py reads the installed torch version),
+# so it cannot be resolved in the same pass as everything else -- which is
+# exactly the kind of dependency that must not be allowed to touch the locked
+# environment the service and CI are tested against.
+#
+# It lives in its own interpreter. Create it with:
+#
+#   uv venv .caches/venv-quant --python 3.12
+#   uv pip install --python .caches/venv-quant/Scripts/python.exe \
+#       torch==2.14.1 transformers==4.53.3 "numpy<3" psutil
+#   uv pip install --python .caches/venv-quant/Scripts/python.exe \
+#       --no-build-isolation gptqmodel==4.2.5
+#   uv pip install --python .caches/venv-quant/Scripts/python.exe \
+#       -r requirements-quant.txt
+#
+# then run the quantizer with that interpreter:
+#
+#   .caches/venv-quant/Scripts/python.exe scripts/quantize_gptq.py
+#
+# Three constraints found the hard way on this machine, recorded so the next
+# person does not rediscover them:
+#
+#  * gptqmodel 7.7.0 (current) depends on `pypcre`, which publishes NO Windows
+#    wheel for any version and builds PCRE2 from source via CMake. That needs
+#    Visual Studio Build Tools, which are not installed here, so the install
+#    fails at `unable to find vswhere.exe`. 4.2.5 predates that dependency.
+#  * gptqmodel 4.2.5 imports `no_init_weights` from transformers.modeling_utils,
+#    which transformers 5.x removed. It needs the 4.x line -- which happens to
+#    be what this project already pins, so the versions below match the
+#    project's rather than diverging from it.
+#  * It eagerly imports every model definition it ships, including vision
+#    models, so Pillow is a hard runtime requirement even for a text model.
+#
+# --no-build-isolation is what lets the build see the torch installed in the
+# first step. Without it the build fails with
+# "Unable to detect torch version via uv/pip/conda/importlib".
+
+gptqmodel==4.2.5
+
+# Runtime imports gptqmodel 4.2.5 makes but does not pull in under
+# --no-build-isolation. Found one at a time by running it, because the package
+# imports its whole model zoo eagerly -- including vision models (Pillow) and,
+# via the EoRA processor, a random-word generator used only for naming things.
+logbar==0.4.15
+device-smi==0.5.7
+tokenicer==0.0.14
+threadpoolctl==3.7.0
+accelerate==1.15.0
+safetensors==0.8.0
+datasets==5.1.0
+pillow==13.0.0
+random-word==1.0.13
+
+# Pinned to the project's own versions, so a result measured here is measured
+# against the same torch and transformers the service runs.
+torch==2.14.1
+transformers==4.53.3
+numpy==2.5.4
+
+# For the shared hardware record, which scripts/quantize_gptq.py loads from
+# src/prodllm/bench/hardware.py by file path rather than installing prodllm.
+psutil==7.2.2

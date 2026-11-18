@@ -62,6 +62,28 @@ class Settings(BaseSettings):
     min_score: float = 0.0
     max_question_chars: int = MAX_QUESTION_CHARS
 
+    # --- re-ranking (Module 4) ---
+    # Off by default, and that is not timidity. Every retrieval and latency
+    # number recorded before Module 4 was taken single-stage, so the
+    # before/after comparison needs the old path to stay exactly reachable;
+    # and a cross-encoder that is missing from the artifacts directory must
+    # degrade to vector-only rather than fail startup, because vector-only is
+    # a working service and not an error state.
+    reranker_enabled: bool = False
+    # Subdirectory of ARTIFACTS_DIR holding the distilled student, as written
+    # by scripts/distill_reranker.py. A Hugging Face model id also works,
+    # which is what makes an A/B against the undistilled teacher a config
+    # change rather than a code change.
+    reranker_dirname: str = "reranker"
+    reranker_model_id: str = ""
+    # Candidates handed to the second stage. 20 is a measured choice: on this
+    # corpus the gold article is inside the top 20 vector hits for 90% of the
+    # question set and inside the top 5 for only 75%, so this is the number
+    # that sets the re-ranker's ceiling. See reports/module-4.md.
+    rerank_candidates: int = 20
+    reranker_max_seq_length: int = 512
+    reranker_batch_size: int = 8
+
     # --- generation ---
     # Empty base URL means no LLM is configured and the extractive generator
     # is used, which quotes articles verbatim and cannot hallucinate.
@@ -102,6 +124,20 @@ class Settings(BaseSettings):
     @property
     def metadata_path(self) -> Path:
         return self.artifacts_dir / self.metadata_file
+
+    @property
+    def reranker_dir(self) -> Path:
+        """Directory holding the distilled cross-encoder."""
+        return self.artifacts_dir / self.reranker_dirname
+
+    @property
+    def reranker_source(self) -> str:
+        """Where to load the re-ranker from: an explicit id wins, else the dir.
+
+        An explicit ``RERANKER_MODEL_ID`` takes precedence so that pointing the
+        service at the 568M teacher for a comparison needs no file moves.
+        """
+        return self.reranker_model_id or str(self.reranker_dir)
 
     @property
     def llm_configured(self) -> bool:
