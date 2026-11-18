@@ -23,6 +23,12 @@ terminal. Nothing else is needed: the model weights and the vector index are
 both inside the image, so there is no download, no API key and no database.
 Startup is about 20 seconds, almost all of it loading the encoder.
 
+`0.1.0` (also tagged `latest`) is the release image: the full 2183-chunk Civil
+Code index and the pinned encoder weights, built from the `runtime` target of
+[docker/Dockerfile](docker/Dockerfile). Tags prefixed `ci-` are different —
+CI publishes them from a small fixture index, so they are for checking the
+build, not for answering questions. Never pull a `ci-*` tag for the quickstart.
+
 On Windows, `curl` in PowerShell is an alias for `Invoke-WebRequest` and takes
 different flags. Use `curl.exe` explicitly, or:
 
@@ -701,22 +707,33 @@ writes the winner back into that file.
 **The remote is shared:** DagsHub, at
 `https://dagshub.com/amerakhater/mlops_final.dvc` (the `dagshub` remote in
 [.dvc/config](.dvc/config)). It started as a local directory
-(`../.dvc-remote`), which only worked beside the author's checkout. Anyone can
-reproduce the corpus and the index from a fresh clone:
+(`../.dvc-remote`), which only worked beside the author's checkout. From a
+fresh clone, the corpus and the index reproduce with:
 
 ```bash
 git clone https://github.com/amerakhater/mlops-practitioner-final-project.git
 cd mlops-practitioner-final-project
 uv sync
-uv run dvc pull    # Law.pdf and the parsed corpus
-uv run dvc repro   # re-parse if stale, then embed -> artifacts/index/
+
+# DagsHub requires a (free) account for every read, even on a public repo:
+# unauthenticated requests to its DVC storage get HTTP 401. Create a token at
+# dagshub.com -> Settings -> Tokens, then store it where git never sees it:
+uv run dvc remote modify --local dagshub auth basic
+uv run dvc remote modify --local dagshub user <your-dagshub-username>
+uv run dvc remote modify --local dagshub password <your-dagshub-token>
+
+uv run dvc pull    # Law.pdf, the parsed corpus and artifacts/index/
+uv run dvc repro   # no-op when current; rebuilds only what is stale
 ```
 
-Pulling needs no credentials. `dvc push` does: put them in the gitignored
-`.dvc/config.local` with `dvc remote modify --local dagshub auth basic`,
-`... user <name>` and `... password <token>` — never in `.dvc/config`. The
-remote holds the PDF and the parsed corpus; the vector index is rebuilt by
-`dvc repro` (the encoder downloads from Hugging Face the first time).
+The credentials live in the gitignored `.dvc/config.local`, never in
+`.dvc/config`. `dvc push` uses the same credentials, plus write access to the
+DagsHub repo. `dvc repro` downloads the encoder from Hugging Face the first
+time it has to re-embed.
+
+If you only want to run the service, none of this is needed: the published
+image in the [Quickstart](#quickstart--three-commands) carries the index and
+the weights and needs no account.
 
 ### Comparing chunking configurations
 
