@@ -105,7 +105,7 @@ jobs:
     needs: [lint, test, index]
     # Never from a pull request: a PR must not be able to publish, and a fork
     # PR has no registry credentials anyway.
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
