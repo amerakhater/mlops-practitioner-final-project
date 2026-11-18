@@ -29,12 +29,22 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=settings.index_dir)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument(
+        "--model",
+        default=None,
+        help=(
+            "Override the encoder. Changing it invalidates the index, so it "
+            "is a dvc dependency rather than an ad-hoc flag."
+        ),
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=0,
         help="Embed only the first N chunks (smoke test).",
     )
     args = parser.parse_args()
+    if args.model:
+        settings = settings.model_copy(update={"source_model_id": args.model})
 
     if not args.chunks.is_file():
         print(

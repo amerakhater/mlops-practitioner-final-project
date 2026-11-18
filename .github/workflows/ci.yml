@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "module-*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  # Keep the resolution identical to the lockfile everywhere.
+  UV_FROZEN: "1"
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: ruff check
+        run: uv run ruff check .
+      - name: ruff format
+        run: uv run ruff format --check .
+
+  test:
+    name: Tests and coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # The suite runs with no weights and no index on disk, by design -- see
+      # the note in README under "Tests and quality gates". If this job ever
+      # needs an artifact to pass, that seam has been broken.
+      - name: pytest
+        run: uv run pytest
+      - name: openapi.json is not stale
+        run: uv run python scripts/export_openapi.py --check
+
+  index:
+    name: Rebuild the index
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # Without this the encoder is re-downloaded on every run, which is most
+      # of this job's wall clock.
+      - name: Cache the Hugging Face hub
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-multilingual-e5-small
+      - name: Build the index from the committed fixture corpus
+        run: |
+          uv run python scripts/build_index.py \
+            --chunks tests/fixtures/sample_chunks.json \
+            --out artifacts/index
+      - name: The index loads and answers
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+          from prodllm.rag import VectorIndex
+
+          index = VectorIndex.load(Path("artifacts/index"))
+          assert index.document_count > 0, "index built but holds no documents"
+          print(f"{index.document_count} documents, {len(index)} vectors")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fixture-index
+          path: artifacts/index
+          retention-days: 1
+
+  faithfulness:
+    name: RAGAS faithfulness gate
+    runs-on: ubuntu-latest
+    # A fork PR has no access to the judge key. Skipping is stated here rather
+    # than hidden inside the script, so a skipped gate is visible in the
+    # checks list instead of looking like a pass.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked --group eval
+      - name: Judge the promoted run against the fixed 20-question set
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: uv run python scripts/eval_gate.py --threshold 0.75
+
+  image:
+    name: Build and push the image
+    runs-on: ubuntu-latest
+    needs: [lint, test, index]
+    # Never from a pull request: a PR must not be able to publish, and a fork
+    # PR has no registry credentials anyway.
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: fixture-index
+          path: artifacts/index
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/mlops-final-project
+          # `ci-` prefixed, always. These images carry the fixture index, so
+          # none of them may ever look like a release tag.
+          tags: |
+            type=sha,prefix=ci-
+            type=ref,event=branch,prefix=ci-
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: runtime
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

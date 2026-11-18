@@ -27,7 +27,7 @@ import random
 import sys
 from pathlib import Path
 
-from prodllm.corpus.chunk import DEFAULT_MAX_CHARS, chunk_corpus
+from prodllm.corpus.chunk import DEFAULT_MAX_CHARS, DEFAULT_OVERLAP, chunk_corpus
 from prodllm.corpus.parse import (
     classify_heading,
     find_repealed_ranges,
@@ -225,6 +225,16 @@ def main() -> int:
         help="Column split x-coordinate. Defaults to half the page width.",
     )
     parser.add_argument("--max-chunk-chars", type=int, default=DEFAULT_MAX_CHARS)
+    parser.add_argument(
+        "--chunk-overlap",
+        type=int,
+        default=DEFAULT_OVERLAP,
+        help=(
+            "Characters of the previous piece repeated at the head of the "
+            "next, within one article. Set from params.yaml by dvc repro so "
+            "that the registered configuration is the one rebuilt."
+        ),
+    )
     parser.add_argument("--min-articles", type=int, default=1000)
     parser.add_argument(
         "--sample", type=int, default=0, help="Print N random articles to inspect."
@@ -243,7 +253,7 @@ def main() -> int:
 
     articles, stats = build(args.pdf, args.gutter)
     report = validate_corpus(articles)
-    chunks = chunk_corpus(articles, args.max_chunk_chars)
+    chunks = chunk_corpus(articles, args.max_chunk_chars, args.chunk_overlap)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(

@@ -71,7 +71,35 @@ bench = [
 # possible -- a naive text dump interleaves the Arabic and English columns.
 corpus = [
     "pdfplumber>=0.11",
+]
+# Experiment tracking and data versioning. Both are developer and CI tooling:
+# the runtime image installs neither, so a tracking server being unreachable
+# can never take the served API down with it.
+tracking = [
+    "mlflow>=2.17",
     "dvc>=3.55",
+    # mlflow already pulls pandas in, but prodllm.tracking imports it directly
+    # for the model signature, and a direct import belongs in the manifest
+    # rather than relying on a transitive dependency that may be dropped.
+    "pandas>=2.2",
+]
+# RAGAS faithfulness judging. Isolated in its own group because it drags in
+# langchain and datasets -- a large tree the service must never import. The
+# judge talks to an OpenAI-compatible endpoint, so no local LLM is needed.
+eval = [
+    "ragas>=0.4,<0.5",
+    # ragas 0.4 imports langchain_community.chat_models.vertexai at module
+    # scope and langchain-community 0.4 deleted it, so a bare `import ragas`
+    # dies on ModuleNotFoundError. ragas declares all four langchain packages
+    # with no version bound at all, so the ceiling has to be stated here.
+    # Holding community below 0.4 pulls langchain-core back to the 0.3 line,
+    # which is why the openai integration is capped to match.
+    "langchain-community>=0.3,<0.4",
+    "langchain-openai>=0.2,<1.0",
+    # Without this bound the resolver settles on langchain-core 0.4.0.dev0 --
+    # a prerelease, in the dependency set of the module whose whole subject is
+    # reproducible runs. Stated explicitly so the lock holds a released build.
+    "langchain-core>=0.3,<0.4",
 ]
 
 [tool.uv]
