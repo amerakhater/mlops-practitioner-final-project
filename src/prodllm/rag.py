@@ -103,6 +103,60 @@ class Answer:
     grounded: bool = True
 
 
+# The generation contract. At module scope rather than inside HttpGenerator
+# because two adapters now send it: the blocking HttpGenerator below and the
+# streaming one in prodllm.streaming. A second copy of a prompt whose entire
+# job is to forbid hallucination is exactly the kind of drift that stays
+# invisible until an answer cites an article that does not exist.
+SYSTEM_PROMPT = (
+    "You answer questions about the Egyptian Civil Code using ONLY the "
+    "articles provided. Cite the article number for every statement, using "
+    "the citation strings given. If the provided articles do not answer the "
+    "question, say so plainly and do not speculate. Never invent an article "
+    "number or a provision. Answer in the language of the question."
+)
+
+# The refusal used when retrieval returns nothing, shared for the same reason:
+# the extractive generator, /ask and the streaming path must decline in
+# identical words, or a client cannot recognise a refusal without parsing prose.
+NO_ARTICLE_FOUND = (
+    "No article in the Egyptian Civil Code was found that addresses this question."
+)
+
+
+def build_prompt(question: str, passages: Sequence[RetrievedArticle]) -> str:
+    """Render the retrieved articles and the question into the user turn."""
+    context = "\n\n".join(
+        f"[{p.citation}]\nArabic: {p.text_ar}\nEnglish: {p.text_en}" for p in passages
+    )
+    return f"Articles:\n{context}\n\nQuestion: {question}"
+
+
+@dataclass(frozen=True)
+class ReindexResult:
+    """What a batch re-index did, as a value the caller can assert on.
+
+    ``added`` counts documents, ``vectors_added`` counts rows in the index --
+    they differ because a bilingual chunk contributes one vector per language,
+    and conflating them is how "documents indexed" ends up reported at twice
+    its real value.
+    """
+
+    added: int
+    skipped: int
+    vectors_added: int
+    documents_indexed: int
+
+    def as_dict(self) -> dict[str, int]:
+        """The shape returned by the re-index endpoint and the CLI's --json."""
+        return {
+            "added": self.added,
+            "skipped": self.skipped,
+            "vectors_added": self.vectors_added,
+            "documents_indexed": self.documents_indexed,
+        }
+
+
 class Generator(Protocol):
     """Turns a question plus retrieved articles into an answer."""
 
@@ -124,10 +178,7 @@ class ExtractiveGenerator:
         passages: Sequence[RetrievedArticle],
     ) -> str:
         if not passages:
-            return (
-                "No article in the Egyptian Civil Code was found that addresses "
-                "this question."
-            )
+            return NO_ARTICLE_FOUND
         parts = [
             f"{passage.citation}: {passage.text_en or passage.text_ar}".strip()
             for passage in passages
@@ -158,20 +209,14 @@ class HttpGenerator:
         self._timeout = timeout
         self._max_output_tokens = max_output_tokens
 
-    SYSTEM_PROMPT = (
-        "You answer questions about the Egyptian Civil Code using ONLY the "
-        "articles provided. Cite the article number for every statement, using "
-        "the citation strings given. If the provided articles do not answer the "
-        "question, say so plainly and do not speculate. Never invent an article "
-        "number or a provision. Answer in the language of the question."
-    )
+    # Both kept on the class because callers and tests reach for
+    # HttpGenerator.SYSTEM_PROMPT and .build_prompt(). The definitions
+    # themselves live at module scope so the streaming adapter in
+    # prodllm.streaming shares them rather than keeping a second copy.
+    SYSTEM_PROMPT = SYSTEM_PROMPT
 
     def build_prompt(self, question: str, passages: Sequence[RetrievedArticle]) -> str:
-        context = "\n\n".join(
-            f"[{p.citation}]\nArabic: {p.text_ar}\nEnglish: {p.text_en}"
-            for p in passages
-        )
-        return f"Articles:\n{context}\n\nQuestion: {question}"
+        return build_prompt(question, passages)
 
     def generate(self, question: str, passages: Sequence[RetrievedArticle]) -> str:
 
@@ -248,11 +293,88 @@ class VectorIndex:
     @property
     def document_count(self) -> int:
         """Distinct chunks indexed, counting a bilingual chunk once."""
-        identifiers = {
+        return len(self.chunk_ids)
+
+    @property
+    def chunk_ids(self) -> set[Any]:
+        """The identifier of every chunk in the index.
+
+        Falls back to ``article_number`` for metadata written before chunks
+        carried ids. This is what makes re-indexing idempotent: the batch job
+        diffs against this set instead of trusting the caller to have filtered.
+        """
+        return {
             entry.get("chunk_id") or entry.get("article_number")
             for entry in self._metadata
         }
-        return len(identifiers)
+
+    @property
+    def dim(self) -> int:
+        """The embedding width this index was built at."""
+        return int(self._index.d)
+
+    def _prepare(
+        self, vectors: np.ndarray, metadata: list[dict[str, Any]]
+    ) -> np.ndarray:
+        """Validate an append and return the contiguous float32 matrix.
+
+        The dimension is checked here rather than left to FAISS: a mismatch
+        means the new documents were embedded with a different model, and
+        FAISS' own failure for that is a bare assertion with no explanation.
+        """
+        if len(vectors) != len(metadata):
+            raise ValueError(
+                f"vectors ({len(vectors)}) and metadata ({len(metadata)}) "
+                "must be the same length"
+            )
+        matrix = np.ascontiguousarray(vectors, dtype=np.float32)
+        if matrix.ndim != 2 or matrix.shape[1] != self.dim:
+            raise ValueError(
+                f"embedding dim mismatch: index is {self.dim}, new vectors are "
+                f"{matrix.shape[1] if matrix.ndim == 2 else matrix.shape} -- the "
+                "new documents were embedded with a different model, so the "
+                "whole index needs rebuilding"
+            )
+        return matrix
+
+    def add(self, vectors: np.ndarray, metadata: list[dict[str, Any]]) -> None:
+        """Append vectors to this index, in place.
+
+        A flat index supports this directly: there is nothing trained to
+        invalidate, so appending is exact and costs no recall -- which is part
+        of why a flat index is still the right choice at this corpus size.
+
+        In place, so this is for the offline job, where nothing is reading the
+        index concurrently. A live service uses ``extended`` instead.
+        """
+        if not metadata:
+            return
+        self._index.add(self._prepare(vectors, metadata))
+        self._metadata.extend(metadata)
+
+    def extended(
+        self, vectors: np.ndarray, metadata: list[dict[str, Any]]
+    ) -> "VectorIndex":
+        """A **new** index holding this one's vectors plus ``vectors``.
+
+        The copy-on-write half of re-indexing, and the reason the live service
+        needs no lock on its read path. ``faiss.IndexFlatIP.add`` is not safe
+        against a concurrent ``search``, so mutating the served index in place
+        would mean either a race or a mutex that serialises every retrieval --
+        and retrieval is the hot path under the 50-user load test.
+
+        Building a copy and rebinding the attribute avoids both. Readers that
+        already hold the old object finish against a consistent snapshot, and
+        the swap is a single attribute assignment, so no request ever observes
+        a half-populated index. The copy is cheap at this scale: the whole
+        index is a few megabytes.
+        """
+        if not metadata:
+            return VectorIndex(faiss.clone_index(self._index), list(self._metadata))
+        matrix = self._prepare(vectors, metadata)
+        clone = faiss.clone_index(self._index)
+        clone.add(matrix)
+        return VectorIndex(clone, [*self._metadata, *metadata])
 
     @classmethod
     def build(
@@ -377,6 +499,101 @@ class RagEngine:
             vectors.extend(embedder.embed(batch, prefix="passage: "))
         return VectorIndex.build(np.asarray(vectors, dtype=np.float32), metadata)
 
+    # ------------------------------------------------------- batch reindexing
+
+    @log_latency("rag.reindex")
+    def add_documents(
+        self,
+        chunks: list[dict[str, Any]],
+        batch_size: int = 32,
+        atomic: bool = False,
+    ) -> "ReindexResult":
+        """Embed and append documents the index does not already hold.
+
+        Incremental by design. Re-embedding ~1100 chunks to publish one new
+        article takes minutes and, more importantly, rewrites vectors that
+        nothing asked to change; appending touches only the new rows.
+
+        **Idempotent.** Chunks whose id is already indexed are skipped, so the
+        job can be re-run after a partial failure, or pointed at the whole
+        corpus file, without duplicating anything. Duplicates would not merely
+        waste space: ``retrieve`` dedupes by article number and keeps the
+        best-scoring vector, so a doubled chunk silently consumes a slot in the
+        candidate pool and pushes a genuine article out of the top-k.
+
+        ``atomic`` selects how the new rows become visible. ``False`` appends
+        in place, which is right for the offline job. ``True`` swaps in an
+        extended copy, which is what a live service needs -- see
+        ``VectorIndex.extended``.
+
+        Known limitation: this adds, it does not revise. A flat index can
+        delete by id, but doing so compacts the remaining rows and renumbers
+        them, which would desynchronise the metadata list that positions index
+        into. Amending an existing article therefore still needs a full
+        rebuild, and that is what scripts/build_index.py is for.
+        """
+        known = self._index.chunk_ids
+        fresh = [
+            chunk
+            for chunk in chunks
+            if (chunk.get("chunk_id") or chunk.get("article_number")) not in known
+        ]
+        skipped = len(chunks) - len(fresh)
+        if not fresh:
+            logger.info(
+                "Re-index found nothing new",
+                extra={"skipped": skipped, "documents_indexed": self.documents_indexed},
+            )
+            return ReindexResult(
+                added=0,
+                skipped=skipped,
+                vectors_added=0,
+                documents_indexed=self.documents_indexed,
+            )
+
+        texts: list[str] = []
+        metadata: list[dict[str, Any]] = []
+        for chunk in fresh:
+            for language, text in self.chunk_payloads(chunk):
+                texts.append(text)
+                metadata.append({**chunk, "lang": language})
+
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), batch_size):
+            vectors.extend(
+                self._embedder.embed(
+                    texts[start : start + batch_size], prefix="passage: "
+                )
+            )
+        matrix = np.asarray(vectors, dtype=np.float32)
+        if atomic:
+            # Rebind, do not mutate: a request already inside retrieve() keeps
+            # the snapshot it started with, and the next one sees the new rows.
+            self._index = self._index.extended(matrix, metadata)
+        else:
+            self._index.add(matrix, metadata)
+
+        result = ReindexResult(
+            added=len(fresh),
+            skipped=skipped,
+            vectors_added=len(metadata),
+            documents_indexed=self.documents_indexed,
+        )
+        logger.info(
+            "Re-indexed new documents",
+            extra={
+                "added": result.added,
+                "skipped": result.skipped,
+                "vectors_added": result.vectors_added,
+                "documents_indexed": result.documents_indexed,
+            },
+        )
+        return result
+
+    def save_index(self, directory: Path) -> None:
+        """Persist the current index, so an append survives a restart."""
+        self._index.save(directory)
+
     # ------------------------------------------------------------ querying
 
     @log_latency("rag.retrieve")
@@ -428,14 +645,7 @@ class RagEngine:
             logger.info(
                 "No relevant article found", extra={"question_chars": len(question)}
             )
-            return Answer(
-                answer=(
-                    "No article in the Egyptian Civil Code was found that "
-                    "addresses this question."
-                ),
-                sources=[],
-                grounded=False,
-            )
+            return Answer(answer=NO_ARTICLE_FOUND, sources=[], grounded=False)
         text = self._generator.generate(question, passages)
         logger.info(
             "Answer generated",

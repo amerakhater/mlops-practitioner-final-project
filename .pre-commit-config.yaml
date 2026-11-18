@@ -18,6 +18,13 @@ repos:
       # blocks tokenizer.json (16.3 MB), which ships in the image, not in git.
       - id: check-added-large-files
         args: [--maxkb=512]
+        # Locust writes a single self-contained HTML report: its charting JS,
+        # its styles and the whole run's stats history are inlined, which is
+        # ~944 KB and not reducible without losing the report. It is a required
+        # Module 3 deliverable, so it is excluded by exact path rather than by
+        # raising the limit -- the 512 KB guard is what stops a model artifact
+        # being committed, and it stays in force for every other file.
+        exclude: ^reports/locust/report\.html$
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml

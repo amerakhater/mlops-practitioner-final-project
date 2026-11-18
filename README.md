@@ -47,7 +47,29 @@ Repealed articles are **flagged, not deleted**: a question about a repealed
 provision should be answerable with the fact that it was repealed, which is
 impossible if the record is gone.
 
-## API
+## Two serving surfaces
+
+There are two ways to serve this system, and both drive the same
+`prodllm.rag.RagEngine` — retrieval, citation and refusal behaviour is defined
+once.
+
+| | FastAPI (`:8000`) | BentoML (`:3000`) |
+|---|---|---|
+| Entry point | `prodllm.api.main:app` | `prodllm.serving.service:LegalRagService` |
+| Contract | committed [openapi.json](openapi.json), gated in CI | `bentofile.yaml` |
+| Streaming | no | **yes** — `/ask_stream` |
+| Batch re-indexing | no | **yes** — `/reindex`, no restart |
+| Embedding endpoints | `/predict`, `/predict/batch` | no |
+| Canary identity | no | **yes** — `release_channel` |
+
+Use FastAPI for the embedding primitives and the published contract; use the
+Bento for production question answering. The split is explained in
+[reports/module-3.md](reports/module-3.md) — in short, the behaviour lives in
+`prodllm/serving/engine.py`, which imports no `bentoml` and is therefore
+testable with no server and no port, while `service.py` is request parsing and
+status codes only.
+
+## FastAPI endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -155,6 +177,217 @@ rather than from a build that wrote `artifacts/metadata.json`.
 instruction prefixes, and omitting them degrades retrieval with no error. An
 unsupported prefix is a `422` at the edge rather than a quietly worse vector.
 Use `"passage: "` only when embedding documents to index.
+
+## Serving with BentoML
+
+```bash
+uv sync --group serving
+uv run --group serving bentoml serve prodllm.serving.service:LegalRagService --port 3000
+```
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/ask` | Asynchronous. Answer, citations, latency, release channel |
+| `POST` | `/ask_stream` | The same answer, streamed as it is produced |
+| `POST` | `/reindex` | Add documents to the live index, no restart |
+| `POST` | `/status` | Documents indexed, and which channel answered |
+| `GET` | `/readyz` | BentoML's own readiness probe |
+
+`/status` rather than `/healthz` on purpose: BentoML already serves `/healthz`,
+`/livez` and `/readyz`, and taking one of those names leaves a path where `GET`
+reaches BentoML's probe and `POST` reaches application code.
+
+```bash
+curl -s localhost:3000/ask -H 'content-type: application/json' \
+  -d '{"question":"What is the prescription period for obligations?"}'
+```
+
+```json
+{
+  "answer": "Egyptian Civil Code, Article 374: The term of prescription for obligations is fifteen years …",
+  "sources": [{"article_number": 374, "citation": "Egyptian Civil Code, Article 374", "score": 0.9049, "…": "…"}],
+  "grounded": true,
+  "latency_ms": 48.6,
+  "release_channel": "stable",
+  "service_version": "0.1.0"
+}
+```
+
+### Streaming tokens
+
+```bash
+curl -N --no-buffer localhost:3000/ask_stream -H 'content-type: application/json' \
+  -d '{"question":"What is the prescription period for obligations?"}'
+```
+
+The response is `Transfer-Encoding: chunked` and arrives in 127 separate
+chunks. Locally the text is assembled in under 3 ms, so the increments are real
+but land faster than a terminal repaints. To see them pace out:
+
+```bash
+PRODLLM_STREAM_DEMO_DELAY_MS=60 \
+  uv run --group serving bentoml serve prodllm.serving.service:LegalRagService --port 3000
+```
+
+Then the same 127 fragments arrive ~60 ms apart over about 8 seconds. That
+setting is a demonstration aid: it defaults to 0, every latency figure in
+[reports/module-3.md](reports/module-3.md) was measured at 0, and it has no
+effect once an LLM is configured — there the pacing is the generator's.
+
+Do not pipe the stream through `head` or `grep` while checking this: the pipe
+buffers, and every chunk then appears to arrive at the same instant.
+
+### Building and containerizing the Bento
+
+```bash
+UV_INDEX_STRATEGY=unsafe-best-match uv run --group serving bentoml build
+uv run --group serving bentoml containerize prodllm-rag:latest
+```
+
+The environment variable is required, not optional. BentoML locks dependencies
+with `uv pip compile`, and by default uv takes each package from the first
+index that offers it at all — the PyTorch CPU index (needed to avoid a ~5 GB
+CUDA image) carries an ancient `certifi`, which makes BentoML's own requirement
+unsatisfiable. The reasoning and the security tradeoff are documented in
+[bentofile.yaml](bentofile.yaml). With it, the lock pins `torch==2.14.1+cpu`
+and one `nvidia-*` package instead of fifteen.
+
+## Measured latency
+
+50 concurrent users for 3 minutes against the Bento, **9131 requests, 0
+failures**:
+
+| Endpoint | p50 | **p95** | p99 | req/s |
+|---|---|---|---|---|
+| `POST /ask` | 42 ms | **81 ms** | 210 ms | 27.3 |
+| `POST /ask_stream` (time to first byte) | 46 ms | **85 ms** | 200 ms | 6.7 |
+| `POST /status` | 6 ms | **13 ms** | 18 ms | 3.4 |
+
+```bash
+uv sync --group load
+uv run --group load locust -f load/locustfile.py --host http://127.0.0.1:3000 \
+  --users 50 --spawn-rate 5 --run-time 3m --headless \
+  --html reports/locust/report.html --csv reports/locust/run
+```
+
+Report: [reports/locust/report.html](reports/locust/report.html).
+
+`/status` touches no model, so it is the control: its p95 of 13 ms against
+`/ask`'s 81 ms shows the service is not queue-bound — the 81 ms is inference
+working, not requests waiting. Full analysis, including why streaming TTFB and
+total are currently identical, is in
+[reports/module-3.md](reports/module-3.md).
+
+## Batch re-indexing
+
+Publishing one new article should not cost a full re-embed of the corpus.
+
+```bash
+# offline: extend the index on disk
+uv run python scripts/reindex.py --chunks tests/fixtures/new_articles.sample.json --dry-run
+uv run python scripts/reindex.py --chunks tests/fixtures/new_articles.sample.json
+
+# live: no restart
+curl -s localhost:3000/reindex -H 'content-type: application/json' \
+  --data-binary @payload.json      # {"documents": [...], "persist": false}
+```
+
+One document into a 1092-document index embeds in **0.11 s**, against minutes
+for a full rebuild. The job is **idempotent** — a chunk id already indexed is
+reported as `skipped` and not embedded again, so re-running after a partial
+failure cannot duplicate it. Duplicates would not merely waste space:
+`retrieve` dedupes by article number over a fixed candidate pool, so a doubled
+chunk silently consumes a slot a genuine article should have had.
+
+The live path is copy-on-write — it builds an extended index and rebinds it —
+because `faiss.IndexFlatIP.add` is not safe against a concurrent `search`, and
+a mutex on retrieval would throttle the hot path. It **adds but does not
+revise**: amending an existing article still needs `scripts/build_index.py`.
+
+`tests/fixtures/new_articles.sample.json` is a labelled synthetic fixture, not a real
+provision. See [reports/module-3.md](reports/module-3.md) for why, and for the
+corpus gap (articles 54–68) that re-indexing is the right tool for.
+
+## Canary rollout
+
+```bash
+docker compose --profile canary up
+```
+
+```
+            ┌─────────────── nginx :8080 ───────────────┐
+  client ──►│  weight=9  ──────────────►  bento (stable) │
+            │  weight=1  ──────────────►  bento-canary   │
+            └────────────────────────────────────────────┘
+```
+
+Two Bento replicas behind an nginx weighted split. They are generated from one
+YAML anchor and differ in **exactly one** environment variable,
+`PRODLLM_RELEASE_CHANNEL` — a canary differing in more than the thing being
+rolled out cannot attribute a latency change to it.
+
+Only the router publishes a port. During a rollout every request must go
+through the split, or you measure whichever replica the caller happened to
+address.
+
+**Why 10%.** The point of a canary is to expose a fault to as few callers as
+possible while still generating enough traffic to see it. At the ~27 req/s this
+service sustains on `/ask`, 10% is still ~2.7 req/s, which fills a p95 bucket
+in under a minute.
+
+**Watch these during the rollout**, comparing canary against stable rather than
+against an absolute target:
+
+| Signal | Where |
+|---|---|
+| Which replica served a request | `release_channel` in the `/ask` body, and nginx's `X-Upstream` header |
+| Error rate per variant | `X-Upstream` on non-2xx — it survives a 502 from a canary that died before answering |
+| p95 per variant | the `release_channel` field on every request log line |
+| Readiness | `POST /status` on each replica directly (`documents_indexed`) |
+
+**Promote** by shifting the weights in
+[docker/canary-nginx.conf](docker/canary-nginx.conf) — 9/1 → 1/1 → 0/1 — and
+reloading nginx. **Roll back** by setting the canary weight to 0 or stopping
+the container. Neither step rebuilds an image or redeploys the stable replica.
+
+In a cluster the same shape is two Deployments behind one Service with the
+replica counts as the weights, or an Istio `VirtualService` with explicit
+weights. The reasoning above is unchanged; what matters is the ratio and what
+you measure during it.
+
+One configuration detail is load-bearing: `proxy_buffering off`. With buffering
+on, nginx accumulates the whole body and hands the client one block at the end.
+That would not break `/ask`, but it silently destroys `/ask_stream` — the
+endpoint still returns the right bytes, just never incrementally.
+
+## Serving the generative LLM with vLLM
+
+```bash
+docker compose --profile vllm up -d vllm
+```
+
+Then point the service at it and restart:
+
+```bash
+PRODLLM_LLM_BASE_URL=http://localhost:8000/v1
+PRODLLM_LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct
+```
+
+No application code changes. vLLM serves the same OpenAI-compatible
+`/chat/completions` with SSE streaming that `prodllm.streaming` already speaks,
+so the adapter cannot tell a self-hosted vLLM from a hosted endpoint — the
+backend is a two-variable configuration choice.
+
+The profile pins `Qwen/Qwen2.5-0.5B-Instruct` because the GPU here has 4 GB of
+VRAM: at fp16 that fits a 0.5B model with room for a KV cache, and does not fit
+a 1.5B one. A 0.5B model's Arabic legal reasoning is weak — a hardware limit,
+not a tuning problem — so this profile demonstrates serving infrastructure, not
+answer quality.
+
+**vLLM is not in the measured path.** The latency figures above were taken with
+no LLM configured, where the service streams retrieved article text verbatim.
+That is a deliberate project decision, recorded in
+[reports/module-3.md](reports/module-3.md).
 
 ## Run from source
 
@@ -305,8 +538,10 @@ values that matter most:
 | `PRODLLM_MIN_SCORE` | `0.0` | Cosine floor, disabled. See the limitation below — this default is a measured result. |
 | `PRODLLM_LOG_LEVEL` | `INFO` | `DEBUG` adds a per-call latency line from the `@log_latency` decorator. |
 | `PRODLLM_TORCH_NUM_THREADS` | `1` | Scale with replicas, not in-process threads. |
-| `PRODLLM_LLM_BASE_URL`, `PRODLLM_LLM_MODEL` | empty | Both empty = extractive answers. |
+| `PRODLLM_LLM_BASE_URL`, `PRODLLM_LLM_MODEL` | empty | Both empty = extractive answers. Set them to point at a hosted endpoint **or** a self-hosted vLLM — same wire format either way. |
 | `PRODLLM_LLM_API_KEY` | empty | A secret. Pass at run time; never commit a value. |
+| `PRODLLM_RELEASE_CHANNEL` | `stable` | Which rollout slot this replica is. Returned on `/ask` and `/status`, and on every log line — this is what makes a canary attributable. |
+| `PRODLLM_STREAM_DEMO_DELAY_MS` | `0` | Paces the extractive stream so increments are visible in `curl`. A demo aid: keep it at 0 for anything measured. |
 
 Logs are JSON on stdout, one line per request, with a correlation ID that also
 comes back as the `x-request-id` header — so a client can quote the header and
@@ -430,7 +665,9 @@ src/prodllm/
 ├── corpus/                 PDF extraction: column-aware parse, bidi repair, normalize, validate
 ├── embedding/              Embedder ABC, FakeEmbedder, TorchEmbedder (transformers)
 ├── pooling.py              mean pooling + L2 normalization, pure numpy, unit-tested
+├── streaming.py            async token streaming; OpenAI-compatible SSE + extractive
 ├── api/                    routes, schemas, DI seams, lifespan, correlation-ID middleware
+├── serving/                BentoML: engine.py holds the behaviour, service.py the decorators
 ├── instrumentation.py      the @log_latency decorator
 ├── logging_conf.py         JSON formatter
 └── config.py               pydantic-settings, PRODLLM_ prefix
@@ -438,7 +675,8 @@ src/prodllm/
 └── tracking/               the chunking configuration as a registered MLflow model
 scripts/
 ├── build_corpus.py         the source PDF   -> data/processed/articles.json + chunks.json
-├── build_index.py          chunks.json      -> artifacts/index/
+├── build_index.py          chunks.json      -> artifacts/index/ (full rebuild)
+├── reindex.py              new chunks       -> appended to an existing index
 ├── fetch_weights.py        Hugging Face     -> artifacts/model/ + metadata.json
 ├── export_openapi.py       the app          -> openapi.json
 ├── mlflow_server.py        the tracking server, without Docker
@@ -451,8 +689,15 @@ dvc.yaml, params.yaml       the PDF -> corpus -> index pipeline and its paramete
 eval/questions.jsonl        the fixed 20-question test set the gate is defined on
 eval/promoted_run.json      the promoted configuration's recorded answers
 docker/Dockerfile           multi-stage; development, runtime, runtime-thin
-docker-compose.yml          api :8000, api-thin :8001, dev :8002, mlflow :5000
+docker/canary-nginx.conf    the 90/10 weighted split used by the canary profile
+docker-compose.yml          api :8000, api-thin :8001, dev :8002, mlflow :5000,
+                            canary router :8080, vllm :8000 (profiles)
+bentofile.yaml              how `bentoml build` packages the serving layer
+load/locustfile.py          the 50-user load test, driven by eval/questions.jsonl
+tests/fixtures/            sample chunks, and a labelled fixture for re-indexing
 reports/module-2.md         the sweep comparison, the registry, and what the gate misses
+reports/module-3.md         the serving design, the measured p95, and the canary
+reports/locust/             the load-test report and its raw CSVs
 ```
 
 ## Known limitations
@@ -486,6 +731,19 @@ reviewer would otherwise find.
 - **The faithfulness gate re-judges recorded answers, not fresh ones**, and the
   DVC remote is a local directory that CI cannot reach. These are the same
   constraint seen from two ends, and one config change lifts both.
+- **vLLM is wired but not in the measured path.** The latency figures were
+  taken with no LLM configured, so they measure retrieval and transport rather
+  than token generation. Starting the `vllm` profile and setting two
+  environment variables puts a generator in the path, at which point those
+  numbers need re-measuring. A deliberate decision, recorded in
+  [reports/module-3.md](reports/module-3.md).
+- **Batch re-indexing adds but does not revise.** A flat FAISS index can delete
+  by id, but doing so compacts and renumbers the remaining rows, which would
+  desynchronise the metadata the index positions resolve through. Amending an
+  existing article still needs a full rebuild.
+- **`dvc.lock` has no `build_index` stage.** `dvc.yaml` defines it but only
+  `build_corpus` is locked, so the index currently has no recorded hash to
+  verify against and `dvc status` reports it as changed. Predates Module 3.
 - **A correct refusal scores zero faithfulness.** When retrieval misses, the
   generator says so instead of inventing a provision — the right behaviour —
   and RAGAS scores that refusal 0.0. One question in the fixed set does this

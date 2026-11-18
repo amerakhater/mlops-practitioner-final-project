@@ -70,6 +70,21 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_timeout_seconds: float = 30.0
 
+    # --- streaming (Module 3) ---
+    # Pause between fragments on the extractive stream, so the increments are
+    # visible in curl rather than arriving as one visual blob. A demonstration
+    # aid only: it defaults to 0 and every measured number in reports/ is taken
+    # at 0. It has no effect once an LLM is configured, where the pacing is the
+    # generator's.
+    stream_demo_delay_ms: int = 0
+
+    # --- release identity (Module 3) ---
+    # Which rollout slot this replica belongs to. Returned on /ask and attached
+    # to every request log line, so during a canary rollout a latency or error
+    # spike can be attributed to a variant instead of guessed at. Free-form by
+    # design: the orchestrator owns the naming, not the application.
+    release_channel: str = "stable"
+
     torch_num_threads: int = 1
     log_level: str = "INFO"
     eager_load: bool = True
