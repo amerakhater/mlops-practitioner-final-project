@@ -1,4 +1,4 @@
 [core]
-    remote = localremote
-['remote "localremote"']
-    url = ../../.dvc-remote
+    remote = dagshub
+['remote "dagshub"']
+    url = https://dagshub.com/amerakhater/mlops_final.dvc

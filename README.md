@@ -698,12 +698,25 @@ and both stages declare them as dependencies — so the promoted configuration
 and the configuration `dvc repro` builds cannot drift apart. `register_best.py`
 writes the winner back into that file.
 
-**The remote is a local directory** (`../.dvc-remote`, relative so a clone
-alongside this repository resolves it identically). `dvc push` and `dvc pull`
-both work and the mechanism is fully demonstrable, but a GitHub runner cannot
-reach it — which is what shapes the CI design below. Moving the remote to S3
-or Google Drive is a one-line config change and the only thing standing
-between CI and a full rebuild.
+**The remote is shared:** DagsHub, at
+`https://dagshub.com/amerakhater/mlops_final.dvc` (the `dagshub` remote in
+[.dvc/config](.dvc/config)). It started as a local directory
+(`../.dvc-remote`), which only worked beside the author's checkout. Anyone can
+reproduce the corpus and the index from a fresh clone:
+
+```bash
+git clone https://github.com/amerakhater/mlops-practitioner-final-project.git
+cd mlops-practitioner-final-project
+uv sync
+uv run dvc pull    # Law.pdf and the parsed corpus
+uv run dvc repro   # re-parse if stale, then embed -> artifacts/index/
+```
+
+Pulling needs no credentials. `dvc push` does: put them in the gitignored
+`.dvc/config.local` with `dvc remote modify --local dagshub auth basic`,
+`... user <name>` and `... password <token>` — never in `.dvc/config`. The
+remote holds the PDF and the parsed corpus; the vector index is rebuilt by
+`dvc repro` (the encoder downloads from Hugging Face the first time).
 
 ### Comparing chunking configurations
 
@@ -738,8 +751,9 @@ gate.
 
 The gate judges [eval/promoted_run.json](eval/promoted_run.json) — the answers
 recorded when the current configuration was promoted — rather than generating
-fresh ones. That is the local DVC remote again: CI cannot pull the corpus, so
-it cannot rebuild the index, so it cannot generate new answers. The gate
+fresh ones. That dates from when the DVC remote was a local directory CI could
+not reach; the remote is shared now, but CI has not been wired to `dvc pull`
+and rebuild the index, so it still cannot generate new answers. The gate
 therefore catches a promoted configuration whose answers are not supported by
 their own contexts, and any tampering with the committed run or the question
 set; it cannot catch a retrieval regression introduced after promotion. See
@@ -833,8 +847,9 @@ reviewer would otherwise find.
   deferred alongside it and have since landed — see
   [reports/module-2.md](reports/module-2.md).
 - **The faithfulness gate re-judges recorded answers, not fresh ones**, and the
-  DVC remote is a local directory that CI cannot reach. These are the same
-  constraint seen from two ends, and one config change lifts both.
+  DVC remote used to be a local directory that CI could not reach. The remote
+  is shared now (DagsHub); what remains is adding a `dvc pull` and index
+  rebuild to the CI job.
 - **vLLM is wired but not in the measured path.** The latency figures were
   taken with no LLM configured, so they measure retrieval and transport rather
   than token generation. Starting the `vllm` profile and setting two
