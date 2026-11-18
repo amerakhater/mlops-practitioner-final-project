@@ -1,0 +1,114 @@
+# docker compose up --build
+#
+# Brings the service up on http://localhost:8000. Compose is not ceremony
+# here: the next module adds a vector database and a tracing backend as
+# sibling services, and this file is where they attach, so `docker compose up`
+# stays the one command that brings the whole stack up.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime
+    image: amerakhater/mlops-final-project:0.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      # DEBUG additionally emits one per-call latency line per embed and per
+      # retrieval, from the @log_latency decorator.
+      PRODLLM_LOG_LEVEL: INFO
+      # One thread per worker: scale with replicas, not in-process threads, so
+      # per-container memory and latency stay predictable.
+      PRODLLM_TORCH_NUM_THREADS: "1"
+      PRODLLM_TOP_K: "5"
+    # Mirrors the image's own HEALTHCHECK so `docker compose ps` reports
+    # readiness rather than mere liveness: /health answers 200 while degraded
+    # on purpose, so a 200 does not mean the service can answer questions.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,sys,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); sys.exit(0 if d['model_loaded'] and d['documents_indexed'] > 0 else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  # The development container, behind a profile so `docker compose up` still
+  # means "run the service as it ships":
+  #   docker compose --profile dev up dev                   # reload on edit
+  #   docker compose --profile dev run --rm dev pytest      # the suite
+  #   docker compose --profile dev run --rm dev ruff check .
+  #
+  # Port 8001 belongs to api-thin, so this takes 8002 and all three can run at
+  # once -- comparing dev behaviour against the shipped image is the reason to
+  # have both.
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    image: mlops-final-project:0.1.0-dev
+    ports:
+      - "8002:8000"
+    # The dev image bakes no PRODLLM_* values -- tests/test_config.py asserts
+    # the shipped defaults, so they are set here instead, where a run can
+    # override them. DEBUG adds the per-call @log_latency lines.
+    environment:
+      PRODLLM_ARTIFACTS_DIR: /app/artifacts
+      PRODLLM_LOG_LEVEL: DEBUG
+      PRODLLM_TORCH_NUM_THREADS: "1"
+      PRODLLM_TOP_K: "5"
+    volumes:
+      # Source, tests and scripts are mounted rather than baked, so an edit on
+      # the host is what runs -- `uvicorn --reload` restarts, and pytest sees
+      # the current tree with no rebuild.
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./scripts:/app/scripts
+      - ./openapi.json:/app/openapi.json:ro
+      # Read-only: the dev container reuses the index and weights already built
+      # on the host, and cannot corrupt them. If artifacts/ is empty the model
+      # is downloaded instead, into the cache volume below.
+      - ./artifacts:/app/artifacts:ro
+      - hf-cache-dev:/app/.cache/huggingface
+    # The dev image does not have the runtime's HEALTHCHECK, on purpose: a dev
+    # container is routinely started with no index on purpose.
+
+  # The weightless variant, for the report's image-size comparison:
+  #   docker compose --profile thin up --build api-thin
+  # It downloads ~470 MB on first start, so the cache is a named volume --
+  # without one, every restart downloads the model again.
+  api-thin:
+    profiles: ["thin"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime-thin
+    image: amerakhater/mlops-final-project:0.1.0-thin
+    ports:
+      - "8001:8000"
+    environment:
+      PRODLLM_LOG_LEVEL: INFO
+      PRODLLM_TORCH_NUM_THREADS: "1"
+    volumes:
+      - hf-cache:/app/.cache/huggingface
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json,sys,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); sys.exit(0 if d['model_loaded'] and d['documents_indexed'] > 0 else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 600s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
+  hf-cache-dev:
