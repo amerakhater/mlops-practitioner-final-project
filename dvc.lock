@@ -11,12 +11,12 @@ stages:
       size: 2599703
     - path: scripts/build_corpus.py
       hash: md5
-      md5: d104eb4c60edfe3f771292d4cf6fb763
-      size: 12279
+      md5: f649e46fc4c9513de8a3f7248ec51598
+      size: 11955
     - path: src/prodllm/corpus
       hash: md5
-      md5: b41257f94e952776aeff470eb046f701.dir
-      size: 67029
+      md5: da4b2e4ca75c896fdc2762072546aff0.dir
+      size: 66736
       nfiles: 14
     params:
       params.yaml:
@@ -31,3 +31,38 @@ stages:
       hash: md5
       md5: 38fb6d401d66165b05c07a02a4207924
       size: 1764367
+  build_index:
+    cmd: uv run python scripts/build_index.py --chunks
+      data/processed/chunks.json --out artifacts/index --model
+      intfloat/multilingual-e5-small
+    deps:
+    - path: data/processed/chunks.json
+      hash: md5
+      md5: 38fb6d401d66165b05c07a02a4207924
+      size: 1764367
+    - path: scripts/build_index.py
+      hash: md5
+      md5: 854b8887b542eafedc2e2b81f236bdb0
+      size: 3071
+    - path: src/prodllm/embedding
+      hash: md5
+      md5: 695c59fb888c48cdbf8c9f3f46b45b4a.dir
+      size: 22122
+      nfiles: 8
+    - path: src/prodllm/pooling.py
+      hash: md5
+      md5: e53531b9a92160ce9d0f512d116bc8f1
+      size: 1393
+    - path: src/prodllm/rag.py
+      hash: md5
+      md5: c1abd5ebba68d921d587fdcb3b11b7a0
+      size: 32838
+    params:
+      params.yaml:
+        chunking.embedding_model: intfloat/multilingual-e5-small
+    outs:
+    - path: artifacts/index
+      hash: md5
+      md5: 0e27a257353069e0ff2a1fcbb059643b.dir
+      size: 6751859
+      nfiles: 2
