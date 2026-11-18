@@ -61,7 +61,11 @@ ENV PATH="/app/.venv/bin:$PATH" \
     HF_HOME=/tmp/hf
 
 COPY scripts/fetch_weights.py ./scripts/
-RUN python scripts/fetch_weights.py --artifacts-dir /weights-artifacts
+RUN python scripts/fetch_weights.py --artifacts-dir /weights-artifacts \
+    # safetensors writes model.safetensors as 0600. The runtime stage runs as a
+    # non-root user, so an unreadable weights file surfaces as a misleading
+    # "No such file" and a container that is up but never serves.
+    && chmod -R a+rX /weights-artifacts
 
 # ----------------------------------------------------------------- development
 # The development image. Not a production artifact and not a base for one:
